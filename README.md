@@ -50,3 +50,13 @@ you should branch off of master when creating a new project.
 
 master is configured for the `STM32L467RG` board but the files may easily be regenerated.
 
+### UART
+To use the interface with the serial UART device on board the STM board,
+use the `screen` tool to connect.
+
+```bash
+$ screen /dev/ttyACM0 BAUDRATE
+```
+
+Use `CTRL-A k` to kill the session.
+
