@@ -115,20 +115,25 @@ void USART_IRQHandler(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t *pRx_coun
         {
             (*pRx_counter) = 0;
         }
-    } else if (USARTx->ISR & USART_ISR_TXE)
+    }
+    else if (USARTx->ISR & USART_ISR_TXE)
     {
         //USARTx->ISR &= ~USART_ISR_TXE;            // clear interrupt
         //Tx1_Counter++;
-    } else if (USARTx->ISR & USART_ISR_ORE)
+    }
+    else if (USARTx->ISR & USART_ISR_ORE)
     {            // Overrun Error
         while (1);
-    } else if (USARTx->ISR & USART_ISR_PE)
+    }
+    else if (USARTx->ISR & USART_ISR_PE)
     {                // Parity Error
         while (1);
-    } else if (USARTx->ISR & USART_ISR_PE)
+    }
+    else if (USARTx->ISR & USART_ISR_PE)
     {                // USART_ISR_FE
         while (1);
-    } else if (USARTx->ISR & USART_ISR_NE)
+    }
+    else if (USARTx->ISR & USART_ISR_NE)
     {            // Noise Error Flag
         while (1);
     }
