@@ -18,29 +18,29 @@
 
 void led_init(void)
 {
-	// Configure LED_PIN as an output
-    GPIOA->MODER &= ~(0x3<<(LED_PIN*2)) ;        // first, clear the two MODE bits for this pin
-    GPIOA->MODER |=   0x1<<(LED_PIN*2)  ;        // 0x1 means output
+    // Configure LED_PIN as an output
+    GPIOA->MODER &= ~(0x3 << (LED_PIN * 2));        // first, clear the two MODE bits for this pin
+    GPIOA->MODER |= 0x1 << (LED_PIN * 2);        // 0x1 means output
 
     // ...and as push-pull drive
-    GPIOA->OTYPER &= ~(0x1<<LED_PIN) ;
+    GPIOA->OTYPER &= ~(0x1 << LED_PIN);
 
     // ...with medium speed
-    GPIOA->OSPEEDR &= ~(0x3<<(LED_PIN*2)) ;        // first, clear the two OSPEED bits for this pin
-    GPIOA->OSPEEDR |=   0x1<<(LED_PIN*2)  ;        // 0x1 means medium speed
+    GPIOA->OSPEEDR &= ~(0x3 << (LED_PIN * 2));        // first, clear the two OSPEED bits for this pin
+    GPIOA->OSPEEDR |= 0x1 << (LED_PIN * 2);        // 0x1 means medium speed
 }
 
-void led_set(_Bool isOn )
+void led_set(_Bool isOn)
 {
-	if(isOn)
-		GPIOA->ODR |=  (1 << LED_PIN);
-	else
-		GPIOA->ODR &= ~(1 << LED_PIN);
+    if (isOn)
+        GPIOA->ODR |= (1 << LED_PIN);
+    else
+        GPIOA->ODR &= ~(1 << LED_PIN);
 }
 
-_Bool led_isOn(void )
+_Bool led_isOn(void)
 {
-	uint32_t bit = GPIOA->ODR & (1<<LED_PIN);
+    uint32_t bit = GPIOA->ODR & (1 << LED_PIN);
 
-	return (bit != 0);
+    return (bit != 0);
 }

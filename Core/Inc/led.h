@@ -10,7 +10,9 @@
 
 
 void led_init(void);
-void led_set(_Bool on_off );
-_Bool led_isOn(void );
+
+void led_set(_Bool on_off);
+
+_Bool led_isOn(void);
 
 #endif /* INC_LED_H_ */
