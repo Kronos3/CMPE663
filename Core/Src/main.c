@@ -97,7 +97,6 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
     // Do POST routine
-    
 
     /* USER CODE END 2 */
 
@@ -108,6 +107,7 @@ int main(void)
 
 
         /* USER CODE END WHILE */
+
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -172,6 +172,7 @@ static void MX_TIM2_Init(void)
 
     /* USER CODE END TIM2_Init 0 */
 
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
     TIM_IC_InitTypeDef sConfigIC = {0};
 
@@ -184,6 +185,15 @@ static void MX_TIM2_Init(void)
     htim2.Init.Period = 4294967295;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
     if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
     {
         Error_Handler();

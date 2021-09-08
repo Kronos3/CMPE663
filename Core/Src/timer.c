@@ -5,12 +5,9 @@
 #include <timer.h>
 
 // Each count is 0.1 ms
-#define PRESCALER 8000
+#define PRESCALER 80
 
-void p1_init_tim(TIM_TypeDef* self)
+static inline void wait_for_pin(void)
 {
-    self->CCR1;
 
-    // Trigger
-    self->CNT = 10000;
 }
