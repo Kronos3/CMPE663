@@ -2,6 +2,11 @@
 #define __STM32L476G_DISCOVERY_UART_H
 
 #include "stm32l476xx.h"
+#include <types.h>
+
+// Read and write to the same UART device
+#define u_stdout USART2
+#define u_stdin USART2
 
 #define BufferSize 50
 
@@ -20,14 +25,32 @@ void USART1_IRQHandler(void);
 
 void USART2_IRQHandler(void);
 
-void USART_Write(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t nBytes);
+/**
+ * Printf to uart
+ * @param format_str format string
+ * @param ... printf va_args
+ * @return length of write
+ */
+I32 uprintf(const char* format_str, ...);
 
-uint8_t USART_Read(USART_TypeDef *USARTx);
+/**
+ * Read a line from the uart
+ * (Block until newline is read)
+ * Always null terminate string
+ * @param buf buffer to read into
+ * @param len max length to reach
+ * @return Pointer to buf
+ */
+char* ugetline(char buf[], U32 len);
 
-void USART_Delay(uint32_t us);
+void USART_Write(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes);
 
-void USART_IRQHandler(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t *pRx_counter);
+U8 USART_Read(USART_TypeDef* USARTx);
 
-void USART2_Init(int baudrate);
+void USART_Delay(U32 us);
+
+void USART_IRQHandler(USART_TypeDef* USARTx, U8* buffer, U32* pRx_counter);
+
+void USART2_Init(I32 baudrate);
 
 #endif /* __STM32L476G_DISCOVERY_UART_H */

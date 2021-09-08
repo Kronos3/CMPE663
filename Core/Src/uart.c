@@ -1,15 +1,18 @@
 #include <uart.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <types.h>
 
 
 // UART Ports:
 // ===================================================
 // PD.5 = USART2_TX (AF7)  |  PD.6 = USART2_RX (AF7)
 
-void USART2_Init(int baudrate)
+void USART2_Init(I32 baudrate)
 {
     ////////////  CONFIGURE CLOCKS	/////////////////
     /* Init the low level hardware : GPIO, CLOCK */
-    uint32_t tmpreg;
+    U32 tmpreg;
     (void) tmpreg;    /// avoid compiler warning
 
     // enable USART2 CLK
@@ -64,8 +67,8 @@ void USART2_Init(int baudrate)
 
     /*-------------------------- USART BRR Configuration -----------------------*/
 #define UART_DIV_SAMPLING16(__PCLK__, __BAUD__)  (((__PCLK__) + ((__BAUD__)/2U)) / (__BAUD__))
-    uint32_t pclk = 16000000;        //PCLK1Freq;
-    uint32_t usartdiv = (uint16_t)(UART_DIV_SAMPLING16(pclk, baudrate));
+    U32 pclk = 16000000;        //PCLK1Freq;
+    U32 usartdiv = (U16) (UART_DIV_SAMPLING16(pclk, baudrate));
     USART2->BRR = usartdiv;
 
     /* In asynchronous mode, the following bits must be kept cleared:
@@ -82,16 +85,52 @@ void USART2_Init(int baudrate)
 }
 
 
-uint8_t USART_Read(USART_TypeDef *USARTx)
+U8 USART_Read(USART_TypeDef* USARTx)
 {
     // SR_RXNE (Read data register not empty) bit is set by hardware
     while (!(USARTx->ISR & USART_ISR_RXNE));  // Wait until RXNE (RX not empty) bit is set
     // USART resets the RXNE flag automatically after reading DR
-    return ((uint8_t)(USARTx->RDR & 0xFF));
+    return ((U8) (USARTx->RDR & 0xFF));
     // Reading USART_DR automatically clears the RXNE flag
 }
 
-void USART_Write(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t nBytes)
+I32 uprintf(const char* format_str, ...)
+{
+    va_list l;
+    va_start(l, format_str);
+    char b[1024];
+    I32 n = vsnprintf(b, 1024, format_str, l);
+    va_end(l);
+
+    USART_Write(u_stdout, (U8*) b, n);
+    return n;
+}
+
+char* ugetline(char buf[], U32 len)
+{
+    U32 i;
+    for (i = 0; i < len - 1; i++)
+    {
+        buf[i] = USART_Read(u_stdin);
+
+        // Allow the user to view what they are typing
+        USART_Write(u_stdout, (U8*)&buf[i], 1);
+
+        if (buf[i] == '\r')
+        {
+            // End of line
+            char lf = '\n';
+            USART_Write(u_stdout, (U8*)&lf, 1);
+            break;
+        }
+    }
+
+    // Add the null terminator
+    buf[i] = 0;
+    return buf;
+}
+
+void USART_Write(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes)
 {
     int i;
     // A byte to be transmitted is written to the TDR (transmit data register), and the TXE (transmit empty) bit is cleared.
@@ -105,7 +144,7 @@ void USART_Write(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t nBytes)
     USARTx->ISR &= ~USART_ISR_TC;
 }
 
-void USART_IRQHandler(USART_TypeDef *USARTx, uint8_t *buffer, uint32_t *pRx_counter)
+void USART_IRQHandler(USART_TypeDef* USARTx, U8* buffer, U32* pRx_counter)
 {
     if (USARTx->ISR & USART_ISR_RXNE)
     {                        // Received data

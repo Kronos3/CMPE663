@@ -37,15 +37,6 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef char I8;
-typedef unsigned char U8;
-typedef short I16;
-typedef unsigned short U16;
-typedef int I32;
-typedef unsigned int U32;
-
-typedef float F32;
-typedef double F64;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
