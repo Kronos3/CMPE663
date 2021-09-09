@@ -130,6 +130,11 @@ char* ugetline(char buf[], U32 len)
     return buf;
 }
 
+char ugetc(void)
+{
+    return (char)USART_Read(u_stdin);
+}
+
 void USART_Write(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes)
 {
     int i;

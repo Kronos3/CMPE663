@@ -22,7 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "timer.h"
+#include "uart.h"
+#include <string.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +35,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define BUCKET_N (100)
+COMPILE_ASSERT(BUCKET_N % 2 == 0, bucket_n_divisible_by_2);
+
+// Number of measurements to take
+#define SAMPLE_N (1000)
+
+// Make sure the bucket is large enough to hold the sample count
+// Assume worst case scenario (All counts go into a single bucket)
+typedef U16 Bucket;
+COMPILE_ASSERT(SAMPLE_N < (1 << (sizeof(Bucket) * 8)), bucket_large_enough);
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -97,6 +111,19 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
     // Do POST routine
+    I32 post_ret;
+    while ((post_ret = p1_post()))
+    {
+        uprintf("POST routine failed with status %d\n"
+                "Press any key to try again...\n", post_ret);
+        ugetc(); // block until input
+    }
+
+    uprintf("POST routine successful\n");
+
+    // 50 buckets on either side of the expected period
+    static Bucket buckets[BUCKET_N];
+    I32 expected_period = 100;
 
     /* USER CODE END 2 */
 
@@ -104,8 +131,51 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        uprintf("Enter expected period or <ENTER> if no change (%d): ", expected_period);
 
+        // Update the expected period if given
+        char expected_period_buf[32];
+        ugetline(expected_period_buf, sizeof(expected_period_buf));
+        if (strlen(expected_period_buf) > 0)
+        {
+            // strtol usually returns '0' on parsing failure
+            // Negative period is nonsense
+            I32 temp;
+            if ((temp = strtol(expected_period_buf, NULL, 0)) > 0)
+            {
+                expected_period = temp;
+            }
+        }
 
+        // Read 100 pulses
+        I32 pulse_n = 100;
+        while (--pulse_n)
+        {
+            I32 raw_ms = p1_take_measurement();
+
+            // Normalize the ms to a bucket index
+            I32 idx = (raw_ms - expected_period) + (BUCKET_N / 2);
+
+            // Make sure the index is in range
+            if (idx >= 0 && idx < BUCKET_N)
+            {
+                // Increment the bucket
+                buckets[idx]++;
+            }
+        }
+
+        // Display the bucket data
+        for (I32 i = 0; i < BUCKET_N; i++)
+        {
+            // Don't display empty buckets
+            if (buckets[i])
+            {
+                uprintf("%d\t%d\n",
+                        i - (BUCKET_N / 2) + expected_period,  // raw ms
+                        buckets[i] // bucket count
+                        );
+            }
+        }
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -180,7 +250,7 @@ static void MX_TIM2_Init(void)
 
     /* USER CODE END TIM2_Init 1 */
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 80;
+    htim2.Init.Prescaler = 79;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim2.Init.Period = 4294967295;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

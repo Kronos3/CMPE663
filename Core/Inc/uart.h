@@ -43,6 +43,13 @@ I32 uprintf(const char* format_str, ...);
  */
 char* ugetline(char buf[], U32 len);
 
+/**
+ * Get a character from the uart
+ * (blocking call)
+ * @return character read from the uart
+ */
+char ugetc(void);
+
 void USART_Write(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes);
 
 U8 USART_Read(USART_TypeDef* USARTx);

@@ -17,4 +17,6 @@ typedef uint32_t U32;
 typedef float F32;
 typedef double F64;
 
+#define COMPILE_ASSERT(expr, name) typedef char __compile_assert_##name[(expr) ? 0 : -1]
+
 #endif //CMPE663_TYPES_H

@@ -9,9 +9,16 @@
 #include <types.h>
 
 /**
- * Initialize a timer. Counter will count in ms
- * @param self timer to initialize
+ * Perform the POST routine:
+ *   Wait for a pulse within 100 milliseconds
+ * @return 0 for success, non-zero for error
  */
-void p1_init_tim(TIM_TypeDef* self);
+I32 p1_post(void);
+
+/**
+ * Take a pulse measurement
+ * @return Duration of pulse period in milliseconds
+ */
+I32 p1_take_measurement(void);
 
 #endif //CMPE663_TIMER_H
