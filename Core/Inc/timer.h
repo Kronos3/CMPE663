@@ -8,12 +8,18 @@
 #include <stm32l476xx.h>
 #include <types.h>
 
+typedef enum
+{
+    POST_SUCCESS = 0,
+    POST_FAILURE = -1,
+} POSTStatus;
+
 /**
  * Perform the POST routine:
  *   Wait for a pulse within 100 milliseconds
  * @return 0 for success, non-zero for error
  */
-I32 p1_post(void);
+POSTStatus p1_post(void);
 
 /**
  * Take a pulse measurement

@@ -111,15 +111,29 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
     // Do POST routine
-    I32 post_ret;
-    while ((post_ret = p1_post()))
+    uprintf("=================================\r\n");
+    POSTStatus post_ret;
+    do
     {
-        uprintf("POST routine failed with status %d\n"
-                "Press any key to try again...\n", post_ret);
-        ugetc(); // block until input
-    }
+        const char* message;
+        switch ((post_ret = p1_post()))
+        {
+            case POST_FAILURE:
+                message = "POST routine failed";
+                break;
+            case POST_SUCCESS:
+                message = "POST routine successful";
+                break;
+        }
 
-    uprintf("POST routine successful\n");
+        uprintf("%s\r\n", message);
+
+        if (post_ret != POST_SUCCESS)
+        {
+            uprintf("Press any key to try again...\r\n");
+            ugetc(); // block until input
+        }
+    } while (post_ret != POST_SUCCESS);
 
     // 50 buckets on either side of the expected period
     static Bucket buckets[BUCKET_N];
@@ -173,7 +187,7 @@ int main(void)
                 uprintf("%d\t%d\n",
                         i - (BUCKET_N / 2) + expected_period,  // raw ms
                         buckets[i] // bucket count
-                        );
+                );
             }
         }
         /* USER CODE END WHILE */
@@ -244,6 +258,7 @@ static void MX_TIM2_Init(void)
 
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
     TIM_IC_InitTypeDef sConfigIC = {0};
 
     /* USER CODE BEGIN TIM2_Init 1 */
@@ -264,6 +279,10 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
+    if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+    {
+        Error_Handler();
+    }
     if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
     {
         Error_Handler();
@@ -271,6 +290,14 @@ static void MX_TIM2_Init(void)
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
     {
         Error_Handler();
     }
@@ -284,7 +311,10 @@ static void MX_TIM2_Init(void)
     }
     /* USER CODE BEGIN TIM2_Init 2 */
 
+    // Enable the timer
+    TIM2->CCER |= TIM_CCER_CC1E;
     /* USER CODE END TIM2_Init 2 */
+    HAL_TIM_MspPostInit(&htim2);
 
 }
 
