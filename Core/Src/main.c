@@ -161,6 +161,12 @@ int main(void)
             }
         }
 
+        p1_start_capture();
+
+        // Dump the first capture to make sure we have
+        // clean input
+        (void)p1_take_measurement();
+
         // Read 100 pulses
         I32 pulse_n = 100;
         while (--pulse_n)
@@ -171,12 +177,16 @@ int main(void)
             I32 idx = (raw_ms - expected_period) + (BUCKET_N / 2);
 
             // Make sure the index is in range
+            // Measurements outside this range will not be counted
             if (idx >= 0 && idx < BUCKET_N)
             {
                 // Increment the bucket
                 buckets[idx]++;
             }
         }
+
+        // Stop the timer peripheral
+        p1_stop_capture();
 
         // Display the bucket data
         for (I32 i = 0; i < BUCKET_N; i++)

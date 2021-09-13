@@ -8,6 +8,16 @@
 // 1000 counts = 1 ms
 #define TIM_1MHZ_TO_MS(cnt) ((cnt) / 1000)
 
+void p1_start_capture(void)
+{
+    TIM2->CR1 |= TIM_CR1_CEN;
+}
+
+void p1_stop_capture(void)
+{
+    TIM2->CR1 &= ~(TIM_CR1_CEN);
+}
+
 POSTStatus p1_post(void)
 {
     // Check if there was a signal in the last 100 ms

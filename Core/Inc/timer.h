@@ -27,4 +27,8 @@ POSTStatus p1_post(void);
  */
 I32 p1_take_measurement(void);
 
+// Control the input capture on the project 1 timer
+void p1_start_capture(void);
+void p1_stop_capture(void);
+
 #endif //CMPE663_TIMER_H
