@@ -108,7 +108,7 @@ I32 uprintf(const char* format_str, ...)
 
 char* ugetline(char buf[], U32 len)
 {
-    U32 i;
+    I32 i;
     for (i = 0; i < len - 1; i++)
     {
         buf[i] = USART_Read(u_stdin);
@@ -122,6 +122,20 @@ char* ugetline(char buf[], U32 len)
             char lf = '\n';
             USART_Write(u_stdout, (U8*)&lf, 1);
             break;
+        }
+        else if (buf[i] == 0x7F) // handle the DEL key
+        {
+            if (i == 0)
+            {
+                // No more characters to delete
+                i--;
+                continue;
+            }
+
+            const char* b = "\b \b"; // backspace
+            USART_Write(u_stdout, (U8*)b, 3);
+            i--; // remove the DEL character
+            i--; // Delete the last inputted character
         }
     }
 

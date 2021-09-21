@@ -154,6 +154,7 @@ int main(void)
             I32 temp = strtol(lower_lim_buf, NULL, 0);
             if (temp >= 50 && temp <= 9950)
             {
+                uprintf("Setting boundary limits %d - %d\r\n", temp, temp + 100);
                 lower_limit = temp;
             }
             else
@@ -185,6 +186,12 @@ int main(void)
             {
                 // Increment the bucket
                 buckets[idx]++;
+            }
+            else
+            {
+                // Input out of range
+                // Read another pulse to compensate
+                pulse_n++;
             }
         }
 

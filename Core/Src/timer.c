@@ -7,6 +7,7 @@
 POSTStatus p1_post(void)
 {
     TIM_TypeDef* self = TIM2;
+    self->CNT = 0;  // clear the timer counter so that overflow is not possible
     U32 curr_tim = self->CNT;
 
     // Wait for approx 100ms or the first pulse
@@ -20,6 +21,8 @@ POSTStatus p1_post(void)
 U32 p1_take_measurement(U32* last_cnt)
 {
     TIM_TypeDef* self = TIM2;
+
+    // Disable interrupts if its enabled
     if (self->SR & TIM_SR_UIF)
     {
         self->SR &= ~(TIM_SR_UIF);
