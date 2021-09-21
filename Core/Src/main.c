@@ -142,6 +142,7 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        // Prompt to change the lower limit
         uprintf("Enter lower limit period (us) or <ENTER> if no change (%d us): ", lower_limit);
 
         // Update the expected period if given
@@ -167,12 +168,13 @@ int main(void)
         // Clear the measurements
         memset(buckets, 0, sizeof(buckets));
 
-        // Dump the first capture to make sure we have clean input
+        // Get a good initial reference point to base measurements off of
         U32 last_measurement_pos = 0;
         (void) p1_take_measurement(&last_measurement_pos);
 
         // Read the pulses
         I32 pulse_n = SAMPLE_N;
+        U32 error_n = 0;
         while (pulse_n--)
         {
             U32 raw_us = p1_take_measurement(&last_measurement_pos);
@@ -189,9 +191,8 @@ int main(void)
             }
             else
             {
-                // Input out of range
-                // Read another pulse to compensate
-                pulse_n++;
+                // Count the number of measurements out of range
+                error_n++;
             }
         }
 
@@ -206,6 +207,12 @@ int main(void)
                         buckets[i] // bucket count
                 );
             }
+        }
+
+        // Warn if any out of range periods were seen
+        if (error_n)
+        {
+            uprintf("Measured %d cycles out of range!!\r\n", error_n);
         }
         /* USER CODE END WHILE */
 
