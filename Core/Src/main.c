@@ -121,13 +121,14 @@ int main(void)
     {
         switch ((post_ret = p1_post()))
         {
+            case POST_SUCCESS:
+                uprintf("POST routine successful\r\n");
+                break;
             case POST_FAILURE:
+            default:
                 uprintf("POST routine failed\r\n"
                         "Press any key to try again...\r\n");
                 ugetc(); // block until input
-                break;
-            case POST_SUCCESS:
-                uprintf("POST routine successful\r\n");
                 break;
         }
     } while (post_ret != POST_SUCCESS);
