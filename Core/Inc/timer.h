@@ -23,12 +23,9 @@ POSTStatus p1_post(void);
 
 /**
  * Take a pulse measurement
- * @return Duration of pulse period in milliseconds
+ * @param last_cnt Pointer to the reference count to compute an elapsed time
+ * @return Duration of pulse period in microseconds
  */
-I32 p1_take_measurement(void);
-
-// Control the input capture on the project 1 timer
-void p1_start_capture(void);
-void p1_stop_capture(void);
+U32 p1_take_measurement(U32* last_cnt);
 
 #endif //CMPE663_TIMER_H

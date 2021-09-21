@@ -4,45 +4,35 @@
 
 #include <timer.h>
 
-// 1 MHz counter frequency
-// 1000 counts = 1 ms
-#define TIM_1MHZ_TO_MS(cnt) ((cnt) / 1000)
-
-void p1_start_capture(void)
-{
-    TIM2->CR1 |= TIM_CR1_CEN;
-}
-
-void p1_stop_capture(void)
-{
-    TIM2->CR1 &= ~(TIM_CR1_CEN);
-}
-
 POSTStatus p1_post(void)
 {
-    // Check if there was a signal in the last 100 ms
-    // TODO(tumbar) This is definitely wrong
-    if (TIM2->CCR2 && TIM_1MHZ_TO_MS(TIM2->CCR2) <= 100)
-    {
-        return POST_SUCCESS;
-    }
-    else
-    {
-        return POST_FAILURE;
-    }
+    TIM_TypeDef* self = TIM2;
+    U32 curr_tim = self->CNT;
+
+    // Wait for approx 100ms or the first pulse
+    while (self->CNT <= curr_tim + 100000 && !(self->SR & TIM_SR_CC1IF));
+
+    // Check if a pulse occurred in the last 100 ms
+    // If it has, the event flag will be sent
+    return (self->SR & TIM_SR_CC1IF) ? POST_SUCCESS : POST_FAILURE;
 }
 
-I32 p1_take_measurement(void)
+U32 p1_take_measurement(U32* last_cnt)
 {
     TIM_TypeDef* self = TIM2;
+    if (self->SR & TIM_SR_UIF)
+    {
+        self->SR &= ~(TIM_SR_UIF);
+    }
 
-    // Wait until the timer event is tripped
-    while (!(self->SR & TIM_SR_CC2IF));
+    // Wait until the timer event is tripped again
+    while (!(self->SR & TIM_SR_CC1IF));
 
-    I32 out = (I32)TIM_1MHZ_TO_MS(self->CCR2);
+    // Reading CCR1 should clear the input flag
+    U32 t2 = self->CCR1;
 
-    // Clear the interrupt flag
-    self->SR &= ~(TIM_SR_CC2IF);
-
-    return out;
+    // Compare against the last measurement
+    U32 elapsed = t2 - *last_cnt;
+    *last_cnt = t2;
+    return elapsed;
 }

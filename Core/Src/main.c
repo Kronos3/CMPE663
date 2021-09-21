@@ -110,34 +110,31 @@ int main(void)
     MX_USART2_UART_Init();
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
+
+    // Boot up the timer peripheral
+    HAL_TIM_Base_Start(&htim2);
+
     // Do POST routine
     uprintf("=================================\r\n");
     POSTStatus post_ret;
     do
     {
-        const char* message;
         switch ((post_ret = p1_post()))
         {
             case POST_FAILURE:
-                message = "POST routine failed";
+                uprintf("POST routine failed\r\n"
+                        "Press any key to try again...\r\n");
+                ugetc(); // block until input
                 break;
             case POST_SUCCESS:
-                message = "POST routine successful";
+                uprintf("POST routine successful\r\n");
                 break;
-        }
-
-        uprintf("%s\r\n", message);
-
-        if (post_ret != POST_SUCCESS)
-        {
-            uprintf("Press any key to try again...\r\n");
-            ugetc(); // block until input
         }
     } while (post_ret != POST_SUCCESS);
 
-    // 50 buckets on either side of the expected period
+    // Buckets hold the counts for
     static Bucket buckets[BUCKET_N];
-    I32 expected_period = 100;
+    I32 lower_limit = 50;
 
     /* USER CODE END 2 */
 
@@ -145,36 +142,42 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-        uprintf("Enter expected period or <ENTER> if no change (%d): ", expected_period);
+        uprintf("Enter lower limit period (us) or <ENTER> if no change (%d us): ", lower_limit);
 
         // Update the expected period if given
-        char expected_period_buf[32];
-        ugetline(expected_period_buf, sizeof(expected_period_buf));
-        if (strlen(expected_period_buf) > 0)
+        char lower_lim_buf[32];
+        ugetline(lower_lim_buf, sizeof(lower_lim_buf));
+        if (strlen(lower_lim_buf) > 0)
         {
             // strtol usually returns '0' on parsing failure
-            // Negative period is nonsense
-            I32 temp;
-            if ((temp = strtol(expected_period_buf, NULL, 0)) > 0)
+            // Valid periods are within
+            I32 temp = strtol(lower_lim_buf, NULL, 0);
+            if (temp >= 50 && temp <= 9950)
             {
-                expected_period = temp;
+                lower_limit = temp;
+            }
+            else
+            {
+                uprintf("Invalid lower limit set '%s'. using %d\r\n",
+                        lower_lim_buf, lower_limit);
             }
         }
 
-        p1_start_capture();
+        // Clear the measurements
+        memset(buckets, 0, sizeof(buckets));
 
-        // Dump the first capture to make sure we have
-        // clean input
-        (void)p1_take_measurement();
+        // Dump the first capture to make sure we have clean input
+        U32 last_measurement_pos = 0;
+        (void) p1_take_measurement(&last_measurement_pos);
 
-        // Read 100 pulses
-        I32 pulse_n = 100;
-        while (--pulse_n)
+        // Read the pulses
+        I32 pulse_n = SAMPLE_N;
+        while (pulse_n--)
         {
-            I32 raw_ms = p1_take_measurement();
+            U32 raw_us = p1_take_measurement(&last_measurement_pos);
 
-            // Normalize the ms to a bucket index
-            I32 idx = (raw_ms - expected_period) + (BUCKET_N / 2);
+            // Normalize the us to a bucket index
+            I32 idx = (I32) (raw_us - lower_limit);
 
             // Make sure the index is in range
             // Measurements outside this range will not be counted
@@ -185,17 +188,14 @@ int main(void)
             }
         }
 
-        // Stop the timer peripheral
-        p1_stop_capture();
-
         // Display the bucket data
         for (I32 i = 0; i < BUCKET_N; i++)
         {
             // Don't display empty buckets
             if (buckets[i])
             {
-                uprintf("%d\t%d\n",
-                        i - (BUCKET_N / 2) + expected_period,  // raw ms
+                uprintf("%d\t%d\r\n",
+                        i + lower_limit,  // raw us
                         buckets[i] // bucket count
                 );
             }
@@ -268,7 +268,6 @@ static void MX_TIM2_Init(void)
 
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
-    TIM_OC_InitTypeDef sConfigOC = {0};
     TIM_IC_InitTypeDef sConfigIC = {0};
 
     /* USER CODE BEGIN TIM2_Init 1 */
@@ -289,10 +288,6 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
-    if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-    {
-        Error_Handler();
-    }
     if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
     {
         Error_Handler();
@@ -303,19 +298,11 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 0;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-    {
-        Error_Handler();
-    }
     sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
     sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
     sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
     sConfigIC.ICFilter = 0;
-    if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_2) != HAL_OK)
+    if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
     {
         Error_Handler();
     }
@@ -324,7 +311,6 @@ static void MX_TIM2_Init(void)
     // Enable the timer
     TIM2->CCER |= TIM_CCER_CC1E;
     /* USER CODE END TIM2_Init 2 */
-    HAL_TIM_MspPostInit(&htim2);
 
 }
 
