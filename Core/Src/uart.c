@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <types.h>
+#include <led.h>
 
 
 // UART Ports:
@@ -94,6 +95,33 @@ U8 USART_Read(USART_TypeDef* USARTx)
     // Reading USART_DR automatically clears the RXNE flag
 }
 
+
+void fw_assertion_failure(const char* file, U32 line,
+                          const char* expr_str,
+                          U32 nargs, ...)
+{
+    uprintf("Assertion failed %s:%d : (%s) == 0",
+            file, line, expr_str);
+
+    va_list args;
+    va_start(args, nargs);
+    for (U32 i = 0; i < nargs; i++)
+    {
+        uprintf(", %d", va_arg(args, int));
+    }
+    va_end(args);
+    uprintf("\r\n");
+
+    // Turn on all LEDs
+    set_led_1(1);
+    set_led_2(1);
+    set_led_3(1);
+    set_led_4(1);
+
+    // Hang Mr. CPU please
+    while (1);
+}
+
 I32 uprintf(const char* format_str, ...)
 {
     va_list l;
@@ -114,13 +142,13 @@ char* ugetline(char buf[], U32 len)
         buf[i] = USART_Read(u_stdin);
 
         // Allow the user to view what they are typing
-        USART_Write(u_stdout, (U8*)&buf[i], 1);
+        USART_Write(u_stdout, (U8*) &buf[i], 1);
 
         if (buf[i] == '\r')
         {
             // End of line
             char lf = '\n';
-            USART_Write(u_stdout, (U8*)&lf, 1);
+            USART_Write(u_stdout, (U8*) &lf, 1);
             break;
         }
         else if (buf[i] == 0x7F) // handle the DEL key
@@ -133,7 +161,7 @@ char* ugetline(char buf[], U32 len)
             }
 
             const char* b = "\b \b"; // backspace
-            USART_Write(u_stdout, (U8*)b, 3);
+            USART_Write(u_stdout, (U8*) b, 3);
             i--; // remove the DEL character
             i--; // Delete the last inputted character
         }
@@ -146,7 +174,7 @@ char* ugetline(char buf[], U32 len)
 
 char ugetc(void)
 {
-    return (char)USART_Read(u_stdin);
+    return (char) USART_Read(u_stdin);
 }
 
 void USART_Write(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes)

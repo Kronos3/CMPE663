@@ -19,4 +19,18 @@ typedef double F64;
 
 #define COMPILE_ASSERT(expr, name) typedef char __compile_assert_##name[(expr) ? 0 : -1]
 
+__attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, const char* expr_str, U32 nargs, ...);
+
+#define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
+#define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+
+#define FW_ASSERT_N(expr, ...) do {                \
+    if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, COUNT_ARGUMENTS(__VA_ARGS__), ##__VA_ARGS__);   \
+} while(0)
+
+#define FW_ASSERT(expr) do {                \
+    if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, 0);   \
+} while(0)
+
 #endif //CMPE663_TYPES_H

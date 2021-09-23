@@ -22,10 +22,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include "timer.h"
 #include "uart.h"
-#include <string.h>
-#include <stdlib.h>
+#include <mot.h>
+#include <seq.h>
+#include <usr.h>
+#include <led.h>
+#include <recipe.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +59,7 @@ COMPILE_ASSERT(SAMPLE_N < (1 << (sizeof(Bucket) * 8)), bucket_large_enough);
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
@@ -70,6 +75,8 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
 static void MX_TIM2_Init(void);
+
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -109,112 +116,88 @@ int main(void)
     MX_GPIO_Init();
     MX_USART2_UART_Init();
     MX_TIM2_Init();
+    MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
 
-    // Boot up the timer peripheral
-    HAL_TIM_Base_Start(&htim2);
+    // Boot up PWM signals on both pins
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 
-    // Do POST routine
-    uprintf("=================================\r\n");
-    POSTStatus post_ret;
-    do
+    // Start up the ms timer for task control
+    HAL_TIM_Base_Start(&htim3);
+
+    gpio_led_init();
+
+    // Initialize the sequence engines to
+    // control both motors
+    Sequence seq_mot1 = {
+            .program = servo_1_recipe,
+            .loop_stack = {0},
+            .ls_idx = 0,
+            .pc = 0,
+            .wait_flag = 0,
+            .status = SEQ_STATUS_PAUSED,
+            .mid = MOT_SERVO_1
+    };
+
+    Sequence seq_mot2 = {
+            .program = servo_2_recipe,
+            .loop_stack = {0},
+            .ls_idx = 0,
+            .pc = 0,
+            .wait_flag = 0,
+            .status = SEQ_STATUS_PAUSED,
+            .mid = MOT_SERVO_2
+    };
+
+    Sequence* engines[2] = {&seq_mot1, &seq_mot2};
+
+    struct
     {
-        switch ((post_ret = p1_post()))
-        {
-            case POST_SUCCESS:
-                uprintf("POST routine successful\r\n");
-                break;
-            case POST_FAILURE:
-            default:
-                uprintf("POST routine failed\r\n"
-                        "Press any key to try again...\r\n");
-                ugetc(); // block until input
-                break;
-        }
-    } while (post_ret != POST_SUCCESS);
+        U16 interrupt_period;
+        void* arg;
 
-    // Buckets hold the counts for
-    static Bucket buckets[BUCKET_N];
-    I32 lower_limit = 50;
+        void (* interrupt_cb)(void*);
+    } interrupt_table[] = {
+            // 10 Hz interrupts
+            {100, &seq_mot1, (void (*)(void*)) sequence_step},
+            {100, &seq_mot2, (void (*)(void*)) sequence_step},
 
+            // Max speed interrupts
+            {0,   engines,   (void (*)(void*)) user_task},
+            {0,   engines,   (void (*)(void*)) led_task}
+    };
+
+    // Print the help prompt
+    uprintf("\r\n===========================\r\n");
+    uprintf("User command help:\r\n"
+            "Pause recipe execution (P,p)\r\n"
+            "Continue Recipe execution (C,c)\r\n"
+            "Move 1 position to the right if possible (R,r)\r\n"
+            "Move 1 position to the left if possible (L,l)\r\n"
+            "No-op no new override entered for selected servo (N,n)\r\n"
+            "Begin or Restart the recipe (B,b)\r\n\r\n");
+
+    // Input prompt
+    uprintf("Enter command: ");
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
+    U16 task_i = 0;
+    U16 start_cnt = TIM3->CNT;
     while (1)
     {
-        // Prompt to change the lower limit
-        uprintf("Enter lower limit period (us) or <ENTER> if no change (%d us): ", lower_limit);
-
-        // Update the expected period if given
-        char lower_lim_buf[32];
-        ugetline(lower_lim_buf, sizeof(lower_lim_buf));
-        if (strlen(lower_lim_buf) > 0)
+        for (U32 i = 0; i < sizeof(interrupt_table) / sizeof(interrupt_table[0]); i++)
         {
-            // strtol usually returns '0' on parsing failure
-            // Valid periods are within
-            I32 temp = strtol(lower_lim_buf, NULL, 0);
-            if (temp >= 50 && temp <= 9950)
+            // Run the interrupts at their requested frequencies
+            if (TIM3->CNT >= (start_cnt + task_i * interrupt_table[i].interrupt_period))
             {
-                uprintf("Setting boundary limits %d - %d\r\n", temp, temp + 100);
-                lower_limit = temp;
-            }
-            else
-            {
-                uprintf("Invalid lower limit set '%s'. using %d\r\n",
-                        lower_lim_buf, lower_limit);
+                interrupt_table[i].interrupt_cb(interrupt_table[i].arg);
             }
         }
 
-        // Clear the measurements
-        memset(buckets, 0, sizeof(buckets));
-
-        // Get a good initial reference point to base measurements off of
-        U32 last_measurement_pos = 0;
-        (void) p1_take_measurement(&last_measurement_pos);
-
-        // Read the pulses
-        I32 pulse_n = SAMPLE_N;
-        U32 error_n = 0;
-        while (pulse_n--)
-        {
-            U32 raw_us = p1_take_measurement(&last_measurement_pos);
-
-            // Normalize the us to a bucket index
-            I32 idx = (I32) (raw_us - lower_limit);
-
-            // Make sure the index is in range
-            // Measurements outside this range will not be counted
-            if (idx >= 0 && idx < BUCKET_N)
-            {
-                // Increment the bucket
-                buckets[idx]++;
-            }
-            else
-            {
-                // Count the number of measurements out of range
-                error_n++;
-            }
-        }
-
-        // Display the bucket data
-        for (I32 i = 0; i < BUCKET_N; i++)
-        {
-            // Don't display empty buckets
-            if (buckets[i])
-            {
-                uprintf("%d\t%d\r\n",
-                        i + lower_limit,  // raw us
-                        buckets[i] // bucket count
-                );
-            }
-        }
-
-        // Warn if any out of range periods were seen
-        if (error_n)
-        {
-            uprintf("Measured %d cycles out of range!!\r\n", error_n);
-        }
+        task_i++;
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -283,7 +266,7 @@ static void MX_TIM2_Init(void)
 
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
-    TIM_IC_InitTypeDef sConfigIC = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
 
     /* USER CODE BEGIN TIM2_Init 1 */
 
@@ -291,9 +274,9 @@ static void MX_TIM2_Init(void)
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 79;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 4294967295;
+    htim2.Init.Period = 20000;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
     {
         Error_Handler();
@@ -303,7 +286,7 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
-    if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
+    if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
     {
         Error_Handler();
     }
@@ -313,19 +296,73 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
-    sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-    sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-    sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-    sConfigIC.ICFilter = 0;
-    if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
     {
         Error_Handler();
     }
     /* USER CODE BEGIN TIM2_Init 2 */
 
     // Enable the timer
+    TIM2->CCMR1 |= TIM_CCMR1_OC1PE;
+    TIM2->CCMR1 |= TIM_CCMR1_OC2PE;
     TIM2->CCER |= TIM_CCER_CC1E;
+    TIM2->CCER |= TIM_CCER_CC2E;
+
     /* USER CODE END TIM2_Init 2 */
+    HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+    /* USER CODE BEGIN TIM3_Init 0 */
+
+    /* USER CODE END TIM3_Init 0 */
+
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+    /* USER CODE BEGIN TIM3_Init 1 */
+
+    /* USER CODE END TIM3_Init 1 */
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 7999;
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = 65535;
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM3_Init 2 */
+
+    /* USER CODE END TIM3_Init 2 */
 
 }
 
