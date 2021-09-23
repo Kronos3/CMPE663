@@ -38,12 +38,15 @@ read_into_buffer(char buf[], U32 n)
         }
         else if (c == 0x7F)
         {
-            // Delete a character
-            buf[l - 1] = 0;
+            if (l > 0)
+            {
+                // Delete a character
+                buf[l - 1] = 0;
 
-            // Delete a character on the screen
-            const char* s = "\b \b";
-            USART_Write(USART2, (const U8*)s, 3);
+                // Delete a character on the screen
+                const char* s = "\b \b";
+                USART_Write(USART2, (const U8*)s, 3);
+            }
         }
         else
         {

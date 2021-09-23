@@ -2,6 +2,7 @@
 // Created by tumbar on 9/22/21.
 //
 
+#include <uart.h>
 #include "seq.h"
 
 #define VALIDATE_RANGE(_x, _min, _max) do { \

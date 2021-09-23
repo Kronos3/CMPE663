@@ -59,7 +59,7 @@ COMPILE_ASSERT(SAMPLE_N < (1 << (sizeof(Bucket) * 8)), bucket_large_enough);
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim5;
 
 UART_HandleTypeDef huart2;
 
@@ -76,7 +76,7 @@ static void MX_USART2_UART_Init(void);
 
 static void MX_TIM2_Init(void);
 
-static void MX_TIM3_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -116,7 +116,7 @@ int main(void)
     MX_GPIO_Init();
     MX_USART2_UART_Init();
     MX_TIM2_Init();
-    MX_TIM3_Init();
+    MX_TIM5_Init();
     /* USER CODE BEGIN 2 */
 
     // Boot up PWM signals on both pins
@@ -124,7 +124,7 @@ int main(void)
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 
     // Start up the ms timer for task control
-    HAL_TIM_Base_Start(&htim3);
+    HAL_TIM_Base_Start(&htim5);
 
     gpio_led_init();
 
@@ -154,18 +154,18 @@ int main(void)
 
     struct
     {
-        U16 interrupt_period;
+        U32 task_i;
+        U32 interrupt_period;
         void* arg;
-
         void (* interrupt_cb)(void*);
     } interrupt_table[] = {
             // 10 Hz interrupts
-            {100, &seq_mot1, (void (*)(void*)) sequence_step},
-            {100, &seq_mot2, (void (*)(void*)) sequence_step},
+            {0, 10000, &seq_mot1, (void (*)(void*)) sequence_step},
+            {0, 10000, &seq_mot2, (void (*)(void*)) sequence_step},
 
             // Max speed interrupts
-            {0,   engines,   (void (*)(void*)) user_task},
-            {0,   engines,   (void (*)(void*)) led_task}
+            {0, 0,     engines,   (void (*)(void*)) user_task},
+            {0, 0,     engines,   (void (*)(void*)) led_task}
     };
 
     // Print the help prompt
@@ -184,20 +184,19 @@ int main(void)
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    U16 task_i = 0;
-    U16 start_cnt = TIM3->CNT;
+    U32 start_cnt = TIM3->CNT;
     while (1)
     {
         for (U32 i = 0; i < sizeof(interrupt_table) / sizeof(interrupt_table[0]); i++)
         {
             // Run the interrupts at their requested frequencies
-            if (TIM3->CNT >= (start_cnt + task_i * interrupt_table[i].interrupt_period))
+            if (TIM5->CNT >= (U32) (start_cnt + interrupt_table[i].task_i * interrupt_table[i].interrupt_period))
             {
                 interrupt_table[i].interrupt_cb(interrupt_table[i].arg);
+                interrupt_table[i].task_i++;
             }
         }
 
-        task_i++;
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -322,47 +321,47 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief TIM3 Initialization Function
+  * @brief TIM5 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM3_Init(void)
+static void MX_TIM5_Init(void)
 {
 
-    /* USER CODE BEGIN TIM3_Init 0 */
+    /* USER CODE BEGIN TIM5_Init 0 */
 
-    /* USER CODE END TIM3_Init 0 */
+    /* USER CODE END TIM5_Init 0 */
 
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-    /* USER CODE BEGIN TIM3_Init 1 */
+    /* USER CODE BEGIN TIM5_Init 1 */
 
-    /* USER CODE END TIM3_Init 1 */
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 7999;
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = 65535;
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+    /* USER CODE END TIM5_Init 1 */
+    htim5.Instance = TIM5;
+    htim5.Init.Prescaler = 7999;
+    htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim5.Init.Period = 4294967295;
+    htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
     {
         Error_Handler();
     }
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+    if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
     {
         Error_Handler();
     }
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN TIM3_Init 2 */
+    /* USER CODE BEGIN TIM5_Init 2 */
 
-    /* USER CODE END TIM3_Init 2 */
+    /* USER CODE END TIM5_Init 2 */
 
 }
 
