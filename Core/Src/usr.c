@@ -103,14 +103,13 @@ void user_task(Sequence* engines[2])
                         }
                         break;
                     case 'r':
-                        if (!(engines[i]->status == SEQ_STATUS_FINISHED ||
-                              engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
+                        if (!(engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
                               engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
                         {
                             // Make sure we can move to the right
-                            if (mot_get_position(i) + 1 <= 5)
+                            if (mot_get_position(i) - 1 >= 0)
                             {
-                                mot_set_position(i, mot_get_position(i) + 1);
+                                mot_set_position(i, mot_get_position(i) - 1);
                             }
                             else
                             {
@@ -119,14 +118,13 @@ void user_task(Sequence* engines[2])
                         }
                         break;
                     case 'l':
-                        if (!(engines[i]->status == SEQ_STATUS_FINISHED ||
-                              engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
+                        if (!(engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
                               engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
                         {
-                            // Make sure we can move to the right
-                            if (mot_get_position(i) - 1 >= 0)
+                            // Make sure we can move to the left
+                            if (mot_get_position(i) + 1 <= 5)
                             {
-                                mot_set_position(i, mot_get_position(i) - 1);
+                                mot_set_position(i, mot_get_position(i) + 1);
                             }
                             else
                             {

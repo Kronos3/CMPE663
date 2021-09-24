@@ -20,31 +20,33 @@ static struct {
 
 // Position to PWM percentage
 // These may be changed as needed
-// NOTE: For servo safety reasons
-//        The PWM signal written to the motor should not
-//        exceed 10% duty cycle. A software assertion will
-//        catch these violations
-const static U32 mot_servo_cycle_tenth_percent[] = {
-        20,  // 2% 0
-        35,  // 1
-        50,  // 2
-        65,  // 3
-        80,  // 4
-        100  // 10% 5
+// NOTE 1: For servo safety reasons
+//         The PWM signal written to the motor should not
+//         exceed 10% duty cycle. A software assertion will
+//         catch these violations
+// NOTE 2: TIM2 runs at with a 79 pre-scalar connected to an 80Mhz clock
+//         ARR set to 20000 (20 ms period)
+//         Each count is 1us
+const static U32 mot_servo_duty_counts[] = {
+    1000,   // 0 (all the way to the right)
+    1200,   // 1
+    1400,   // 2
+    1600,   // 3
+    1800,   // 4
+    2000,   // 5 (all the way to the left)
 };
 
 static inline
-void mot_set_pwm(volatile U32* ccr, U8 duty_cycle_percent)
+void mot_set_pwm(volatile U32* ccr, U32 duty_cycle_count)
 {
     FW_ASSERT(ccr);
 
     // Perform a safety check on the inputted duty cycle
-    FW_ASSERT(duty_cycle_percent >= 20 && duty_cycle_percent <= 100);
+    // Don't go above 10 % duty cycle
+    // Don't go below 5 % duty cycle
+    FW_ASSERT_N(duty_cycle_count <= 2000 && duty_cycle_count >= 1000, duty_cycle_count);
 
-    U32 ccr_temp = (TIM2_ARR / 1000) * duty_cycle_percent;
-    FW_ASSERT_N(ccr_temp <= 2000, ccr_temp);
-
-    *ccr = ccr_temp;
+    *ccr = duty_cycle_count;
 }
 
 MotPos mot_get_position(MotorId mid)
@@ -59,13 +61,13 @@ void mot_set_position(MotorId mid, MotPos pos)
 
     // Validate the position range
     FW_ASSERT_N(pos >= 0 && pos <= 5 &&
-                pos < sizeof(mot_servo_cycle_tenth_percent) / sizeof(mot_servo_cycle_tenth_percent[0]),
+                pos < sizeof(mot_servo_duty_counts) / sizeof(mot_servo_duty_counts[0]),
                 pos);
 
     // Set the PWM duty cycle on the correct PIN
     mot_set_pwm(
             motor_table[mid].ccr,
-            mot_servo_cycle_tenth_percent[pos]
+            mot_servo_duty_counts[pos]
     );
     motor_table[mid].current_position = pos;
 }

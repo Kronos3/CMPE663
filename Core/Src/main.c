@@ -161,6 +161,7 @@ int main(void)
         U32 task_i;
         U32 interrupt_period;
         void* arg;
+
         void (* interrupt_cb)(void*);
     } interrupt_table[] = {
             // 10 Hz interrupts
@@ -168,8 +169,8 @@ int main(void)
             {0, 1000, &seq_mot2, (void (*)(void*)) sequence_step},
 
             // Max speed interrupts
-            {0, 0,     engines,   (void (*)(void*)) user_task},
-            {0, 0,     engines,   (void (*)(void*)) led_task}
+            {0, 0,    engines,   (void (*)(void*)) user_task},
+            {0, 0,    engines,   (void (*)(void*)) led_task}
     };
 
     // Print the help prompt
