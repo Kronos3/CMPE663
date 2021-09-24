@@ -152,6 +152,10 @@ int main(void)
 
     Sequence* engines[2] = {&seq_mot1, &seq_mot2};
 
+    // Reset the motor positions
+    mot_set_position(MOT_SERVO_1, 0);
+    mot_set_position(MOT_SERVO_2, 0);
+
     struct
     {
         U32 task_i;
@@ -160,8 +164,8 @@ int main(void)
         void (* interrupt_cb)(void*);
     } interrupt_table[] = {
             // 10 Hz interrupts
-            {0, 10000, &seq_mot1, (void (*)(void*)) sequence_step},
-            {0, 10000, &seq_mot2, (void (*)(void*)) sequence_step},
+            {0, 1000, &seq_mot1, (void (*)(void*)) sequence_step},
+            {0, 1000, &seq_mot2, (void (*)(void*)) sequence_step},
 
             // Max speed interrupts
             {0, 0,     engines,   (void (*)(void*)) user_task},
@@ -176,7 +180,9 @@ int main(void)
             "Move 1 position to the right if possible (R,r)\r\n"
             "Move 1 position to the left if possible (L,l)\r\n"
             "No-op no new override entered for selected servo (N,n)\r\n"
-            "Begin or Restart the recipe (B,b)\r\n\r\n");
+            "Begin or Restart the recipe (B,b)\r\n"
+            "Print motor position (S,s)\r\n\r\n"
+    );
 
     // Input prompt
     uprintf("Enter command: ");

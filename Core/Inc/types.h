@@ -19,6 +19,15 @@ typedef double F64;
 
 #define COMPILE_ASSERT(expr, name) typedef char __compile_assert_##name[(expr) ? 0 : -1]
 
+/**
+ * Handle assertion failures
+ * Hang the cpu and flash all of the LEDs
+ * @param file File where assertion failure occurred
+ * @param line Line of assertion failure
+ * @param expr_str Asserted expression failure
+ * @param nargs number of arguments to print
+ * @param ... arguments to print
+ */
 __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, const char* expr_str, U32 nargs, ...);
 
 #define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11

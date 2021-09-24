@@ -100,18 +100,6 @@ void gpio_led_init(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : SHLD_A0_Pin SHLD_D2_Pin */
-    GPIO_InitStruct.Pin = SHLD_A0_Pin|SHLD_D2_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /*Configure GPIO pins : SHLD_A1_Pin SHLD_A2_Pin */
-    GPIO_InitStruct.Pin = SHLD_A1_Pin|SHLD_A2_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
     /*Configure GPIO pins : USART_TX_Pin USART_RX_Pin */
     GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;

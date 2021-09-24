@@ -18,6 +18,12 @@ static struct {
         {MOT_SERVO_2, 0, &TIM2->CCR2}
 };
 
+// Position to PWM percentage
+// These may be changed as needed
+// NOTE: For servo safety reasons
+//        The PWM signal written to the motor should not
+//        exceed 10% duty cycle. A software assertion will
+//        catch these violations
 const static U32 mot_servo_cycle_tenth_percent[] = {
         20,  // 2% 0
         35,  // 1
@@ -43,7 +49,7 @@ void mot_set_pwm(volatile U32* ccr, U8 duty_cycle_percent)
 
 MotPos mot_get_position(MotorId mid)
 {
-    FW_ASSERT(mid > MOT_INVALID && mid < MOT_N);
+    FW_ASSERT_N(mid > MOT_INVALID && mid < MOT_N, mid);
     return motor_table[mid].current_position;
 }
 
@@ -52,8 +58,9 @@ void mot_set_position(MotorId mid, MotPos pos)
     FW_ASSERT(mid > MOT_INVALID && mid < MOT_N);
 
     // Validate the position range
-    FW_ASSERT(pos >= 0 && pos <= 5 &&
-                pos < sizeof(mot_servo_cycle_tenth_percent) / sizeof(mot_servo_cycle_tenth_percent[0]));
+    FW_ASSERT_N(pos >= 0 && pos <= 5 &&
+                pos < sizeof(mot_servo_cycle_tenth_percent) / sizeof(mot_servo_cycle_tenth_percent[0]),
+                pos);
 
     // Set the PWM duty cycle on the correct PIN
     mot_set_pwm(

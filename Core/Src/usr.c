@@ -108,9 +108,13 @@ void user_task(Sequence* engines[2])
                               engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
                         {
                             // Make sure we can move to the right
-                            if (mot_get_position(i) + 1 < 5)
+                            if (mot_get_position(i) + 1 <= 5)
                             {
                                 mot_set_position(i, mot_get_position(i) + 1);
+                            }
+                            else
+                            {
+                                uprintf("At motor %d right limit\r\n", i + 1);
                             }
                         }
                         break;
@@ -120,23 +124,32 @@ void user_task(Sequence* engines[2])
                               engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
                         {
                             // Make sure we can move to the right
-                            if (mot_get_position(i) - 1 < 0)
+                            if (mot_get_position(i) - 1 >= 0)
                             {
                                 mot_set_position(i, mot_get_position(i) - 1);
+                            }
+                            else
+                            {
+                                uprintf("At motor %d left limit\r\n", i + 1);
                             }
                         }
                         break;
                     case 'n':
                         // nop
                         break;
+                    case 's':
+                        uprintf("Motor %d: %d\r\n", i + 1, mot_get_position(i));
+                        break;
                     case 'b':
                         // Starts/restarts the recipe immediately
                         engines[i]->pc = 0;
                         engines[i]->status = SEQ_STATUS_RUNNING;
+                        engines[i]->wait_flag = 0; // clear any pending waits
+                        engines[i]->ls_idx = 0; // clear any pending loops
                         break;
                     default:
                         uprintf("Invalid user input command '%c' on motor %d\r\n",
-                                user_input[i], i);
+                                user_input[i], i + 1);
                         break;
                 }
             }
