@@ -72,8 +72,13 @@ void user_task(Sequence* engines[2])
     // Check if user input available
     if (user_input)
     {
+        // Make sure there are no 'x' / 'X' in the command
+        if (strchr(user_input, 'x') || strchr(user_input, 'X'))
+        {
+            uprintf("Command cancelled\r\n");
+        }
         // Check if the command has 2 characters
-        if (strlen(user_input) == 2)
+        else if (strlen(user_input) == 2)
         {
             // Handle each command for either motor
             for (U8 i = 0; i < 2; i++)
@@ -103,8 +108,7 @@ void user_task(Sequence* engines[2])
                         }
                         break;
                     case 'r':
-                        if (!(engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
-                              engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
+                        if (engines[i]->status != SEQ_STATUS_RUNNING)
                         {
                             // Make sure we can move to the right
                             if (mot_get_position(i) - 1 >= 0)
@@ -118,8 +122,7 @@ void user_task(Sequence* engines[2])
                         }
                         break;
                     case 'l':
-                        if (!(engines[i]->status == SEQ_STATUS_COMMAND_ERR ||
-                              engines[i]->status == SEQ_STATUS_NESTED_LOOP_ERR))
+                        if (engines[i]->status != SEQ_STATUS_RUNNING)
                         {
                             // Make sure we can move to the left
                             if (mot_get_position(i) + 1 <= 5)
@@ -144,6 +147,18 @@ void user_task(Sequence* engines[2])
                         engines[i]->status = SEQ_STATUS_RUNNING;
                         engines[i]->wait_flag = 0; // clear any pending waits
                         engines[i]->ls_idx = 0; // clear any pending loops
+                        break;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                        // Make sure a recipe isn't running on this motor
+                        if (engines[i]->status != SEQ_STATUS_RUNNING)
+                        {
+                            mot_set_position(i, user_input[i] - '0');
+                        }
                         break;
                     default:
                         uprintf("Invalid user input command '%c' on motor %d\r\n",
