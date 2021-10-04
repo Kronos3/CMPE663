@@ -191,7 +191,7 @@ int main(void)
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    U32 start_cnt = TIM3->CNT;
+    U32 start_cnt = TIM5->CNT;
     while (1)
     {
         for (U32 i = 0; i < sizeof(interrupt_table) / sizeof(interrupt_table[0]); i++)
