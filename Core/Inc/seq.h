@@ -50,7 +50,7 @@ struct Sequence_prv
 
     U8 loop_stack[LOOP_LEVELS * 2];
     U8 ls_idx;          //!< Index in the loop stack
-    U8 wait_flag;       //!< Number of 100ms to wait for next command exec
+    I8 wait_flag;       //!< Number of 100ms to wait for next command exec
 
     U32 pc;             //!< Program counter
     SeqStatus status;   //!< Sequence execution status

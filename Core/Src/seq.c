@@ -9,13 +9,13 @@
         return (SEQ_STATUS_COMMAND_ERR);    \
 } while(0)
 
-static SeqStatus mov_handler(const Sequence* self, U8 target_position)
+static SeqStatus mov_handler(Sequence* self, U8 target_position)
 {
     FW_ASSERT(self);
     VALIDATE_RANGE(target_position, 0, 5);
 
     // Tell the motor driver to set the motor position
-    mot_set_position(self->mid, target_position);
+    self->wait_flag = mot_set_position(self->mid, target_position);
     return SEQ_STATUS_RUNNING;
 }
 
@@ -112,7 +112,7 @@ static SeqStatus command_dispatch(Sequence* self, U8 command)
         case OP_ERROR_IF:
             return error_if_handler(self, command & CMD_PARAM_MASK);
         default:
-            FW_ASSERT_N(0 && "Invalid opcode", (Opcode)((command & CMD_OP_CODE_MASK) >> CMD_OP_CODE_SHIFT));
+            FW_ASSERT(0 && "Invalid opcode", (Opcode)((command & CMD_OP_CODE_MASK) >> CMD_OP_CODE_SHIFT));
     }
 
     FW_ASSERT(0);
@@ -139,6 +139,7 @@ void sequence_step(Sequence* self)
             FW_ASSERT(0);
     }
 
+    FW_ASSERT(self->wait_flag >= 0, self->wait_flag);
     if (self->wait_flag)
     {
         // Wait for the next 100ms interrupt

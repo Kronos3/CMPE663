@@ -182,7 +182,8 @@ int main(void)
             "Move 1 position to the left if possible (L,l)\r\n"
             "No-op no new override entered for selected servo (N,n)\r\n"
             "Begin or Restart the recipe (B,b)\r\n"
-            "Print motor position (S,s)\r\n\r\n"
+            "Print motor position (S,s)\r\n"
+            "Set position directory ([0-9])\r\n\r\n"
     );
 
     // Input prompt

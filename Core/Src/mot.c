@@ -7,7 +7,8 @@
 
 #define TIM2_ARR (20000)
 
-static struct {
+static struct
+{
     MotorId mid;
     MotPos current_position;
     volatile U32* ccr;  //!< PWM duty cycle control register
@@ -28,12 +29,12 @@ static struct {
 //         ARR set to 20000 (20 ms period)
 //         Each count is 1us
 const static U32 mot_servo_duty_counts[] = {
-    1000,   // 0 (all the way to the right)
-    1200,   // 1
-    1400,   // 2
-    1600,   // 3
-    1800,   // 4
-    2000,   // 5 (all the way to the left)
+        1000,   // 0 (all the way to the right)
+        1200,   // 1
+        1400,   // 2
+        1600,   // 3
+        1800,   // 4
+        2000,   // 5 (all the way to the left)
 };
 
 static inline
@@ -44,30 +45,33 @@ void mot_set_pwm(volatile U32* ccr, U32 duty_cycle_count)
     // Perform a safety check on the inputted duty cycle
     // Don't go above 10 % duty cycle
     // Don't go below 5 % duty cycle
-    FW_ASSERT_N(duty_cycle_count <= 2000 && duty_cycle_count >= 1000, duty_cycle_count);
+    FW_ASSERT(duty_cycle_count <= 2000 && duty_cycle_count >= 1000, duty_cycle_count);
 
     *ccr = duty_cycle_count;
 }
 
 MotPos mot_get_position(MotorId mid)
 {
-    FW_ASSERT_N(mid > MOT_INVALID && mid < MOT_N, mid);
+    FW_ASSERT(mid > MOT_INVALID && mid < MOT_N, mid);
     return motor_table[mid].current_position;
 }
 
-void mot_set_position(MotorId mid, MotPos pos)
+I32 mot_set_position(MotorId mid, MotPos pos)
 {
     FW_ASSERT(mid > MOT_INVALID && mid < MOT_N);
 
     // Validate the position range
-    FW_ASSERT_N(pos >= 0 && pos <= 5 &&
-                pos < sizeof(mot_servo_duty_counts) / sizeof(mot_servo_duty_counts[0]),
-                pos);
+    FW_ASSERT(pos >= 0 &&
+              pos < sizeof(mot_servo_duty_counts) / sizeof(mot_servo_duty_counts[0]),
+              pos);
 
     // Set the PWM duty cycle on the correct PIN
     mot_set_pwm(
             motor_table[mid].ccr,
             mot_servo_duty_counts[pos]
     );
+
+    I32 delay = 2 * (ABS(motor_table[mid].current_position - pos));
     motor_table[mid].current_position = pos;
+    return delay;
 }

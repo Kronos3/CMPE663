@@ -19,6 +19,6 @@ typedef enum
 typedef I32 MotPos;
 
 MotPos mot_get_position(MotorId mid);
-void mot_set_position(MotorId mid, MotPos pos);
+I32 mot_set_position(MotorId mid, MotPos pos);
 
 #endif //CMPE663_MOT_H
