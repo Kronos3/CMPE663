@@ -9,8 +9,8 @@
 \newcommand{\LabSectionNum}{1}
 \newcommand{\LabInstructor}{Wolfe}
 \newcommand{\TAs}{Nitin Borhade}
-\newcommand{\exerciseNumber}{1}
-\newcommand{\exerciseDescription}{Timers}
+\newcommand{\exerciseNumber}{2}
+\newcommand{\exerciseDescription}{Servos}
 
 \usepackage{tikz}
 \usepackage{circuitikz}
@@ -34,68 +34,79 @@
     \maketitle
     \section*{Analysis/Design}
 
-    This project looked at implementing a timer for input capture. \code{TIM2} was
-    set up for input capture on Channel 1. Microseconds between rising edges on the
-    input pin were timed. A variable frequency sqaure wave generator was used to produce
-    input signals.\\
-
-    The overall flow of the program was quite simple. A Power-on-self-test was created
-    to test the signal of the input pin to verify a valid input wave.
+    This project looked at implementing a motor controller that could take
+    user input as well as run a predefined set of instructions. Instructions
+    were encoded into a single byte with the first three bits acting as an
+    op-code and the final five bits as a a parameter. The design of the entire
+    system was split into multiple independent modules. An executor was created
+    for executing task modules at various rates. A table of tasks can be found
+    in \code{main()} called \code{task\_table[]}. \\
     
     \begin{figure}[h!]
       \centering
-      \includegraphics[width=\textwidth]{overview}
-      \caption{Design of input capture timer}
+      \includegraphics[width=5.5in]{servo_proj_design}
+      \caption{Design of servo control project}
       \label{fig:overview}
     \end{figure}
+    
+    The first and most
+    important module is \code{mot} (Motor). This module is responsible for
+    keeping track of motor position and providing a public interface for
+    getting and setting motor position. This module utilized a PWM conversion
+    table to produce a correct duty-cycle given a target position.\\
 
-    Figure \ref{fig:overview} shows the basic control flow of the project.
-    The important thing to note here is that $1001$ measurements are taken
-    because the first tick needs to compare its counter to the event before.
-    This is what the reference measurement does.\\
+    \code{seq} (Sequence or recipe) is responsible for keeping state of an
+    executing recipe on the specified motor. Two sequence engines were
+    instantiated pointing to both servo motors. The implementation involved
+    implementing a program counter and instruction table to decode from.
+    Each opcode would then dispatch a separate function and could interface
+    with \code{mot} is needed. Because the \code{seq} module was implemented
+    as a task (as opposed to \code{mot} which is a service), it has a executor
+    interface that is expected to be called at 10 Hz.\\
 
-    A UART interface was designed to utilize \code{printf}/\code{getline}
-    features to the UART. Input and output via the uart was stardardized to
-    more closely resemble a common C program. 
+	Finally, \code{usr} and \code{led} are also implemented as tasks, however
+	their execution will not be delayed by a hardware timer. Their non-blocking
+	task will be executed at the maximum speed the software can attain. \code{led}
+	simply looks at the status code of both sequence engines and controls four
+	LEDs to denote each of the 4 states per motor. \code{usr} will take input
+	from the user and control \code{seq} and \code{mot} as needed.
 
-    \section*{Test plan}
+	\subsection*{Grad-portion}
 
-    The POST routine was used to test the existence of a wave. To test the actual timer,
-    various frequencies were tested to see if the buckets filled around the generated
-    frequency. The sum of all buckets was verified to equal $1000$.\\
+	For the grad-portion of the assignment, an extra op-code was implemented
+	called \code{ERROR\_IF}. This opcode would check the position of the opposite
+	motor and cause recipe failure if the motor was at a given position. For
+	example, if \code{ERROR\_IF|3} was running on motor \code{1} and motor
+	\code{2} was at position \code{3}, the recipe on motor \code{1} would fault
+	out. To easily test this behaviour, an extra set of user command was
+	implemented, any ascii character from \code{'0'} to \code{'5'} could directly
+	set the position of the motor in question.
 
-    To test the UART portion, the limits of the input were tested as well as invalid
-    inputs. The \code{DEL} ASCII code was tested to be handled properly during getline
-    to allow the user to use backspace during inputs.
+    \section*{Test Plan}
+
+    Testing the code was fairly straighforward. I started by implementing
+   	\code{mot} and testing each motor position on either motor. Once this
+   	was working, I wrote the \code{seq} state machine and made sure the timing
+   	provided by \code{TIM5} was accurate. The extra set of user commands
+   	discussed in the grad-portion section of this document also proved very
+   	useful for the testing of \code{usr}, \code{seq} and \code{mot}.
 
     \section*{Project Results}
 
-    When running the program with a \SI{1}{\kilo\Hz} wave connected, I'd expect the
-    output to be grouped around \SI{1000}{ms}.
-    
-    \begin{figure}[h!]
-    \includegraphics[width=\textwidth]{s1}
-    \caption{Input capture performed with a \SI{1}{\kilo\Hz} signal}
-    \end{figure}
+    The software behaved as expected by the problem statement. Motor 1's
+    recipe \code{MOV} commands as well as the \code{WAIT} commands produced
+    the expected delays of $9.3s + 0.2 \cdot \delta_{position}$. User input
+    could be gathered at any point during program execution including during
+    the execution of a recipe. This was done by writing all tasks as a
+    non-blocking interface so as to allow the execution of all tasks.
 
-    When run again with a \SI{2}{\kilo\Hz}, I'd expect the period to be around
-    \SI{500}{ms}.
+    \section*{Lessons Learned}
 
-    \begin{figure}[h!]
-    \includegraphics[width=\textwidth]{s1}
-    \caption{Input capture performed with a \SI{1}{\kilo\Hz} signal}
-    \end{figure}
-
-    Both of the tests run and output expected results.
-
-    \section*{Lessons learned}
-    I encountered two major issues while working on the project. The first issue was
-    that the wave generator I was using initially was not configured to pulse to the
-    correct voltage. The timer would never trip even though the wave looked correct on
-    the oscilliscope. The second issue was due to my misunderstanding with how the
-    timer works. I assumed that when an input event was triggered, the counter would
-    be reset. Due to this assumption, the results would become very skewed after
-    re-running the program a couple of times. Once I realized how the timer works
-    and the reference measurement was implemented, the program worked properly.
+	This project explored creating an embedded system with multiple simultaneous
+	cooperating tasks running. It also tought me how servo motors are controlled
+	with a PWM signal. While the hardware component of this project was fairly
+	straightforward, the software was written to be robust enough to fault
+	execution if invalid branches or parameters were seen. This caught several
+	bugs and sped for project up considerably.
 
 \end{document}

@@ -162,11 +162,11 @@ int main(void)
         U32 interrupt_period;
         void* arg;
 
-        void (* interrupt_cb)(void*);
-    } interrupt_table[] = {
+        void (* task_cb)(void*);
+    } task_table[] = {
             // 10 Hz interrupts
-            {0, 1000, &seq_mot1, (void (*)(void*)) sequence_step},
-            {0, 1000, &seq_mot2, (void (*)(void*)) sequence_step},
+            {0, 1000, &seq_mot1, (void (*)(void*)) seq_task},
+            {0, 1000, &seq_mot2, (void (*)(void*)) seq_task},
 
             // Max speed interrupts
             {0, 0,    engines,   (void (*)(void*)) user_task},
@@ -195,13 +195,13 @@ int main(void)
     U32 start_cnt = TIM5->CNT;
     while (1)
     {
-        for (U32 i = 0; i < sizeof(interrupt_table) / sizeof(interrupt_table[0]); i++)
+        for (U32 i = 0; i < sizeof(task_table) / sizeof(task_table[0]); i++)
         {
             // Run the interrupts at their requested frequencies
-            if (TIM5->CNT >= (U32) (start_cnt + interrupt_table[i].task_i * interrupt_table[i].interrupt_period))
+            if (TIM5->CNT >= (U32) (start_cnt + task_table[i].task_i * task_table[i].interrupt_period))
             {
-                interrupt_table[i].interrupt_cb(interrupt_table[i].arg);
-                interrupt_table[i].task_i++;
+                task_table[i].task_cb(task_table[i].arg);
+                task_table[i].task_i++;
             }
         }
 

@@ -118,7 +118,7 @@ static SeqStatus command_dispatch(Sequence* self, U8 command)
     FW_ASSERT(0);
 }
 
-void sequence_step(Sequence* self)
+void seq_task(Sequence* self)
 {
     FW_ASSERT(self);
     FW_ASSERT(self->program);
