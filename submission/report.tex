@@ -57,18 +57,18 @@
 
     \code{seq} (Sequence or recipe) is responsible for keeping state of an
     executing recipe on the specified motor. Two sequence engines were
-    instantiated pointing to both servo motors. The implementation involved
-    implementing a program counter and instruction table to decode from.
+    instantiated pointing to either servo motors. The implementation involved
+    a program counter and instruction table to decode from.
     Each opcode would then dispatch a separate function and could interface
-    with \code{mot} is needed. Because the \code{seq} module was implemented
+    with \code{mot} if needed. Because the \code{seq} module was implemented
     as a task (as opposed to \code{mot} which is a service), it has a executor
     interface that is expected to be called at 10 Hz.\\
 
 	Finally, \code{usr} and \code{led} are also implemented as tasks, however
-	their execution will not be delayed by a hardware timer. Their non-blocking
+	their execution are not delayed by a hardware timer. Their non-blocking
 	task will be executed at the maximum speed the software can attain. \code{led}
 	simply looks at the status code of both sequence engines and controls four
-	LEDs to denote each of the 4 states per motor. \code{usr} will take input
+	LEDs to denote each of the four states per motor. \code{usr} will take input
 	from the user and control \code{seq} and \code{mot} as needed.
 
 	\subsection*{Grad-portion}
