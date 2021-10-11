@@ -6,14 +6,6 @@
 #define CMPE663_LED_H
 
 #include "types.h"
-#include "seq.h"
-
-/**
- * Set the led to show the states of the
- * running sequence engines
- * @param engines Pointer to both sequence engines
- */
-void led_task(const Sequence* engines[2]);
 
 /**
  * Initialize the GPIO pins for LED usage

@@ -169,37 +169,3 @@ void gpio_led_init(void)
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
-
-void led_task(const Sequence* engines[2])
-{
-    struct {
-        void (*green)(U32);
-        void (*red)(U32);
-    } cb[] = {
-            {set_led_1, set_led_2},
-            {set_led_3, set_led_4},
-    };
-
-    for (U32 i = 0; i < 2; i++)
-    {
-        switch(engines[i]->status)
-        {
-            case SEQ_STATUS_COMMAND_ERR:
-                cb[i].green(0);
-                cb[i].red(1);
-                break;
-            case SEQ_STATUS_NESTED_LOOP_ERR:
-                cb[i].green(1);
-                cb[i].red(1);
-            case SEQ_STATUS_PAUSED:
-            case SEQ_STATUS_FINISHED: // all off
-                cb[i].green(0);
-                cb[i].red(0);
-                break;
-            case SEQ_STATUS_RUNNING:
-                cb[i].green(1);
-                cb[i].red(0);
-                break;
-        }
-    }
-}
