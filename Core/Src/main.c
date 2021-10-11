@@ -27,6 +27,9 @@
 #include "timer.h"
 #include "uart.h"
 #include <led.h>
+#include <teller.h>
+#include <rng.h>
+#include <tim.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,6 +56,27 @@ const osThreadAttr_t defaultTask_attributes = {
         .stack_size = 128 * 4,
         .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for teller_1 */
+osThreadId_t teller_1Handle;
+const osThreadAttr_t teller_1_attributes = {
+        .name = "teller_1",
+        .stack_size = 128 * 4,
+        .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for teller_2 */
+osThreadId_t teller_2Handle;
+const osThreadAttr_t teller_2_attributes = {
+        .name = "teller_2",
+        .stack_size = 128 * 4,
+        .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for teller_3 */
+osThreadId_t teller_3Handle;
+const osThreadAttr_t teller_3_attributes = {
+        .name = "teller_3",
+        .stack_size = 128 * 4,
+        .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -64,7 +88,9 @@ static void MX_GPIO_Init(void);
 
 static void MX_USART2_UART_Init(void);
 
-void StartDefaultTask(void *argument);
+void StartDefaultTask(void* argument);
+
+extern void teller_task(void* argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -79,7 +105,8 @@ void StartDefaultTask(void *argument);
   * @brief  The application entry point.
   * @retval int
   */
-int main(void) {
+int main(void)
+{
     /* USER CODE BEGIN 1 */
 
     /* USER CODE END 1 */
@@ -107,14 +134,14 @@ int main(void) {
 
     gpio_led_init();
 
-    // Input prompt
-    uprintf("Enter command: ");
     /* USER CODE END 2 */
 
     /* Init scheduler */
     osKernelInitialize();
 
     /* USER CODE BEGIN RTOS_MUTEX */
+    teller_init();
+    rng_init();
     /* add mutexes, ... */
     /* USER CODE END RTOS_MUTEX */
 
@@ -124,6 +151,7 @@ int main(void) {
 
     /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
+    tim_sim_start();
     /* USER CODE END RTOS_TIMERS */
 
     /* USER CODE BEGIN RTOS_QUEUES */
@@ -133,6 +161,15 @@ int main(void) {
     /* Create the thread(s) */
     /* creation of defaultTask */
     defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+    /* creation of teller_1 */
+    teller_1Handle = osThreadNew(teller_task, (void*) TELLER_1, &teller_1_attributes);
+
+    /* creation of teller_2 */
+    teller_2Handle = osThreadNew(teller_task, (void*) TELLER_2, &teller_2_attributes);
+
+    /* creation of teller_3 */
+    teller_3Handle = osThreadNew(teller_task, (void*) TELLER_3, &teller_3_attributes);
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -148,7 +185,8 @@ int main(void) {
     /* We should never get here as control is now taken by the scheduler */
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-    while (1) {
+    while (1)
+    {
         FW_ASSERT(0);
         /* USER CODE END WHILE */
 
@@ -161,13 +199,15 @@ int main(void) {
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void) {
+void SystemClock_Config(void)
+{
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
     /** Configure the main internal regulator output voltage
     */
-    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK) {
+    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
+    {
         Error_Handler();
     }
     /** Initializes the RCC Oscillators according to the specified parameters
@@ -183,7 +223,8 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
     RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
     RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
         Error_Handler();
     }
     /** Initializes the CPU, AHB and APB buses clocks
@@ -195,7 +236,8 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+    {
         Error_Handler();
     }
 }
@@ -205,7 +247,8 @@ void SystemClock_Config(void) {
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void) {
+static void MX_USART2_UART_Init(void)
+{
 
     /* USER CODE BEGIN USART2_Init 0 */
 
@@ -224,7 +267,8 @@ static void MX_USART2_UART_Init(void) {
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
     huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
     huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    if (HAL_UART_Init(&huart2) != HAL_OK) {
+    if (HAL_UART_Init(&huart2) != HAL_OK)
+    {
         Error_Handler();
     }
     /* USER CODE BEGIN USART2_Init 2 */
@@ -238,7 +282,8 @@ static void MX_USART2_UART_Init(void) {
   * @param None
   * @retval None
   */
-static void MX_GPIO_Init(void) {
+static void MX_GPIO_Init(void)
+{
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     /* GPIO Ports Clock Enable */
@@ -272,16 +317,38 @@ static void MX_GPIO_Init(void) {
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
+  *         Generates customers comings into the queue at random intervals
   * @param  argument: Not used
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument) {
+void StartDefaultTask(void* argument)
+{
     /* USER CODE BEGIN 5 */
-    /* Infinite loop */
-    for (;;) {
-        osDelay(1);
+    // Keep creating customers until the bank closes
+    while (tim_sim_running())
+    {
+        // Wait for the new customer to enter the bank
+        // Each new customer arrives every one to four minutes.
+        U32 wait_time = rng_new(
+                tim_time_to_tick(1, 0),
+                tim_time_to_tick(4, 0)
+        );
+        vTaskDelay(wait_time);
+
+        // Each customer requires between 30 seconds and 8 minutes for their transaction with the teller
+        Customer new_customer = {
+                .transaction_time = rng_new(
+                        tim_time_to_tick(0, 30),
+                        tim_time_to_tick(8, 0)),
+                .queue_start = tim_get_time()
+        };
+
+        bank_queue_customer(&new_customer);
     }
+
+    // Wait for all the tellers to finish up
+    FW_ASSERT(0);
     /* USER CODE END 5 */
 }
 
@@ -293,11 +360,13 @@ void StartDefaultTask(void *argument) {
   * @param  htim : TIM handle
   * @retval None
   */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
     /* USER CODE BEGIN Callback 0 */
 
     /* USER CODE END Callback 0 */
-    if (htim->Instance == TIM5) {
+    if (htim->Instance == TIM5)
+    {
         HAL_IncTick();
     }
     /* USER CODE BEGIN Callback 1 */
@@ -309,11 +378,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void) {
+void Error_Handler(void)
+{
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
     __disable_irq();
-    while (1) {
+    while (1)
+    {
     }
     /* USER CODE END Error_Handler_Debug */
 }

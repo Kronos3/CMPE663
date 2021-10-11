@@ -5,7 +5,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string.h>
-#include "metrics_pub.h"
+#include "metrics.h"
 
 typedef struct {
     U32 total;
@@ -30,7 +30,7 @@ void metric_init(void)
     memset(&metrics, 0, sizeof(metrics));
 }
 
-void metric_add(task_t teller_id, metric_t metric_id, U32 value)
+void metric_add(teller_t teller_id, metric_t metric_id, U32 value)
 {
     xSemaphoreTake(metrics_lock, portMAX_DELAY);
 
@@ -39,10 +39,13 @@ void metric_add(task_t teller_id, metric_t metric_id, U32 value)
         case METRIC_CUSTOMER_WAIT:
             // Increment number of customers for this teller
             // when they get services
-            metrics.customers[teller_id - 1]++;
+            metrics.customers[teller_id]++;
             // fallthrough
         case METRIC_TELLER_WAIT:
         case METRIC_TELLER_SERVICE:
+        case METRIC_TELLER_BREAK_1:
+        case METRIC_TELLER_BREAK_2:
+        case METRIC_TELLER_BREAK_3:
             // Add to the metrics for this type
             metrics.statistics[metric_id].total += value;
             if (!metrics.statistics[metric_id].n)
