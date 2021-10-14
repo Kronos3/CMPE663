@@ -30,6 +30,7 @@
 #include <teller.h>
 #include <rng.h>
 #include <tim.h>
+#include <metrics.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+RNG_HandleTypeDef hrng;
+
 UART_HandleTypeDef huart2;
 
 /* Definitions for defaultTask */
@@ -56,29 +59,39 @@ const osThreadAttr_t defaultTask_attributes = {
         .stack_size = 128 * 4,
         .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for teller_1 */
-osThreadId_t teller_1Handle;
-const osThreadAttr_t teller_1_attributes = {
-        .name = "teller_1",
-        .stack_size = 128 * 4,
-        .priority = (osPriority_t) osPriorityLow,
-};
-/* Definitions for teller_2 */
-osThreadId_t teller_2Handle;
-const osThreadAttr_t teller_2_attributes = {
-        .name = "teller_2",
-        .stack_size = 128 * 4,
-        .priority = (osPriority_t) osPriorityLow,
-};
-/* Definitions for teller_3 */
-osThreadId_t teller_3Handle;
-const osThreadAttr_t teller_3_attributes = {
-        .name = "teller_3",
-        .stack_size = 128 * 4,
-        .priority = (osPriority_t) osPriorityLow,
-};
 /* USER CODE BEGIN PV */
 
+osThreadId_t teller_1_handle;
+const osThreadAttr_t teller_1_attributes = {
+        .name = "teller_1",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t teller_2_handle;
+const osThreadAttr_t teller_2_attributes = {
+        .name = "teller_2",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t teller_3_handle;
+const osThreadAttr_t teller_3_attributes = {
+        .name = "teller_3",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t status_handle;
+const osThreadAttr_t status_attributes = {
+        .name = "status",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityAboveNormal,
+};
+osThreadId_t seven_handle;
+const osThreadAttr_t seven_attributes = {
+        .name = "seven",
+        .stack_size = 128,
+        .priority = (osPriority_t) osPriorityBelowNormal,
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,9 +101,9 @@ static void MX_GPIO_Init(void);
 
 static void MX_USART2_UART_Init(void);
 
-void StartDefaultTask(void* argument);
+static void MX_RNG_Init(void);
 
-extern void teller_task(void* argument);
+void StartDefaultTask(void* argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -130,6 +143,7 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_USART2_UART_Init();
+    MX_RNG_Init();
     /* USER CODE BEGIN 2 */
 
     gpio_led_init();
@@ -142,6 +156,8 @@ int main(void)
     /* USER CODE BEGIN RTOS_MUTEX */
     teller_init();
     rng_init();
+    uart_init();
+    metric_init();
     /* add mutexes, ... */
     /* USER CODE END RTOS_MUTEX */
 
@@ -162,17 +178,18 @@ int main(void)
     /* creation of defaultTask */
     defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-    /* creation of teller_1 */
-    teller_1Handle = osThreadNew(teller_task, (void*) TELLER_1, &teller_1_attributes);
-
-    /* creation of teller_2 */
-    teller_2Handle = osThreadNew(teller_task, (void*) TELLER_2, &teller_2_attributes);
-
-    /* creation of teller_3 */
-    teller_3Handle = osThreadNew(teller_task, (void*) TELLER_3, &teller_3_attributes);
-
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
+    teller_1_handle = osThreadNew(
+            teller_task, (void*) TELLER_1, &teller_1_attributes);
+    teller_2_handle = osThreadNew(
+            teller_task, (void*) TELLER_2, &teller_2_attributes);
+    teller_3_handle = osThreadNew(
+            teller_task, (void*) TELLER_3, &teller_3_attributes);
+    status_handle = osThreadNew(
+            status_task, NULL, &status_attributes);
+    seven_handle = osThreadNew(
+            seven_segment_task, NULL, &seven_attributes);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
@@ -240,6 +257,32 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
+}
+
+/**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+    /* USER CODE BEGIN RNG_Init 0 */
+
+    /* USER CODE END RNG_Init 0 */
+
+    /* USER CODE BEGIN RNG_Init 1 */
+
+    /* USER CODE END RNG_Init 1 */
+    hrng.Instance = RNG;
+    if (HAL_RNG_Init(&hrng) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN RNG_Init 2 */
+
+    /* USER CODE END RNG_Init 2 */
+
 }
 
 /**
@@ -325,15 +368,21 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void* argument)
 {
     /* USER CODE BEGIN 5 */
+    set_led_1(0);
+    set_led_2(0);
+    set_led_3(0);
+    set_led_4(0);
+
     // Keep creating customers until the bank closes
     while (tim_sim_running())
     {
         // Wait for the new customer to enter the bank
         // Each new customer arrives every one to four minutes.
         U32 wait_time = rng_new(
-                tim_time_to_tick(1, 0),
-                tim_time_to_tick(4, 0)
+                tim_time_to_tick(0, 30),
+                tim_time_to_tick(2, 0)
         );
+
         vTaskDelay(wait_time);
 
         // Each customer requires between 30 seconds and 8 minutes for their transaction with the teller
@@ -347,31 +396,17 @@ void StartDefaultTask(void* argument)
         bank_queue_customer(&new_customer);
     }
 
-    // Wait for all the tellers to finish up
-    FW_ASSERT(0);
+    // Set all the LEDs on to indicate finish
+    set_led_1(1);
+    set_led_2(1);
+    set_led_3(1);
+    set_led_4(1);
+
+    // Hang the task
+    while (1)
+    { vTaskDelay(portMAX_DELAY); }
+
     /* USER CODE END 5 */
-}
-
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM5 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
-{
-    /* USER CODE BEGIN Callback 0 */
-
-    /* USER CODE END Callback 0 */
-    if (htim->Instance == TIM5)
-    {
-        HAL_IncTick();
-    }
-    /* USER CODE BEGIN Callback 1 */
-
-    /* USER CODE END Callback 1 */
 }
 
 /**
@@ -381,11 +416,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
-    /* User can add his own implementation to report the HAL error return state */
-    __disable_irq();
-    while (1)
-    {
-    }
+    FW_ASSERT(0 && "Error handler");
     /* USER CODE END Error_Handler_Debug */
 }
 

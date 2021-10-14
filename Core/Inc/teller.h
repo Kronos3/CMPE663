@@ -13,6 +13,7 @@ typedef enum {
     TELLER_1,
     TELLER_2,
     TELLER_3,
+    TELLER_N,
 } teller_t;
 
 typedef enum {
@@ -23,7 +24,7 @@ typedef enum {
 
 typedef struct {
     teller_t id;
-    teller_state_t state;
+    volatile teller_state_t state;
 
     U32 start_wait;         //!< When we started to wait for the next customer
     U32 next_break;         //!< When our next break is
@@ -43,8 +44,24 @@ void teller_init(void);
  * Main task for each teller
  * @param argument (void*)(teller_t)
  */
-void teller_task(void* argument);
+extern void teller_task(void* argument);
 
+/**
+ * Print the status to the UART
+ * @param argument
+ */
+void status_task(void* argument);
+U32 bank_queue_length(void);
+
+/**
+ * Wait for all tellers to finish up for the day
+ */
+void teller_await_finish(void);
+
+/**
+ * Add a customer to the waiting queue
+ * @param customer customer to add
+ */
 void bank_queue_customer(const Customer* customer);
 
 #endif //CMPE663_TELLER_H

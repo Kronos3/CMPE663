@@ -25,6 +25,8 @@ void USART1_IRQHandler(void);
 
 void USART2_IRQHandler(void);
 
+void uart_init(void);
+
 /**
  * Printf to uart
  * @param format_str format string
@@ -32,6 +34,12 @@ void USART2_IRQHandler(void);
  * @return length of write
  */
 I32 uprintf(const char* format_str, ...);
+I32 uprintf_no_lock(const char* format_str, ...);
+
+/**
+ * Clear terminal window
+ */
+void uclear(void);
 
 /**
  * Read a line from the uart

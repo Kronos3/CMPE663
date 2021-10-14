@@ -3,6 +3,10 @@
 //
 
 #include <stm32l476xx.h>
+#include <teller.h>
+
+#include <FreeRTOS.h>
+#include <task.h>
 #include "stm32l4xx_hal.h"
 #include "led.h"
 
@@ -95,13 +99,13 @@ void gpio_led_init(void)
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     /*Configure GPIO pins : SHLD_A5_Pin SHLD_A4_Pin */
-    GPIO_InitStruct.Pin = SHLD_A5_Pin|SHLD_A4_Pin;
+    GPIO_InitStruct.Pin = SHLD_A5_Pin | SHLD_A4_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /*Configure GPIO pins : USART_TX_Pin USART_RX_Pin */
-    GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;
+    GPIO_InitStruct.Pin = USART_TX_Pin | USART_RX_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -109,7 +113,7 @@ void gpio_led_init(void)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /*Configure GPIO pins : SHLD_D13_Pin SHLD_D12_Pin SHLD_D11_Pin SHLD_D7_SEG7_Clock_Pin */
-    GPIO_InitStruct.Pin = SHLD_D13_Pin|SHLD_D12_Pin|SHLD_D11_Pin|SHLD_D7_SEG7_Clock_Pin;
+    GPIO_InitStruct.Pin = SHLD_D13_Pin | SHLD_D12_Pin | SHLD_D11_Pin | SHLD_D7_SEG7_Clock_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -122,7 +126,7 @@ void gpio_led_init(void)
     HAL_GPIO_Init(SHLD_A3_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pins : SHLD_D6_Pin SHLD_D5_Pin */
-    GPIO_InitStruct.Pin = SHLD_D6_Pin|SHLD_D5_Pin;
+    GPIO_InitStruct.Pin = SHLD_D6_Pin | SHLD_D5_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -162,10 +166,67 @@ void gpio_led_init(void)
     HAL_GPIO_Init(SHLD_D10_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pins : SHLD_D15_Pin SHLD_D14_Pin */
-    GPIO_InitStruct.Pin = SHLD_D15_Pin|SHLD_D14_Pin;
+    GPIO_InitStruct.Pin = SHLD_D15_Pin | SHLD_D14_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
+static void shift_out(uint8_t val)
+{
+    for (int ii = 0x80; ii; ii >>= 1)
+    {
+        // Signal hardware to stop reading bit
+        HAL_GPIO_WritePin(SHLD_D7_SEG7_Clock_GPIO_Port,
+                          SHLD_D7_SEG7_Clock_Pin,
+                          GPIO_PIN_RESET);
+
+        // Shift this bit's value
+        HAL_GPIO_WritePin(SHLD_D8_SEG7_Data_GPIO_Port,
+                          SHLD_D8_SEG7_Data_Pin,
+                          (ii & val) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+        // Signal the hardware that the value is ready
+        HAL_GPIO_WritePin(SHLD_D7_SEG7_Clock_GPIO_Port,
+                          SHLD_D7_SEG7_Clock_Pin,
+                          GPIO_PIN_SET);
+    }
+}
+
+/* Segment byte maps for numbers 0 to 9 */
+const char SEGMENT_MAP[] = {0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0X80, 0X90};
+/* Byte maps to select digit 1 to 4 */
+const char SEGMENT_SELECT[] = {0xF1, 0xF2, 0xF4, 0xF8};
+
+static void write_to_segment(I32 segment, U8 value)
+{
+    FW_ASSERT(segment >= 0 && segment < 4, segment);
+    FW_ASSERT(value >= 0 && value < 10, value);
+
+    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port, SHLD_D4_SEG7_Latch_Pin, GPIO_PIN_RESET);
+    shift_out(SEGMENT_MAP[value]);
+    shift_out(SEGMENT_SELECT[segment]);
+    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port, SHLD_D4_SEG7_Latch_Pin, GPIO_PIN_SET);
+}
+
+void seven_segment_set(U32 number)
+{
+    I32 i = 3;
+    while (i >= 0)
+    {
+        write_to_segment(i--, number % 10);
+        number /= 10;
+    }
+}
+
+void seven_segment_task(void* argument)
+{
+    (void) argument;
+
+    while (1)
+    {
+        seven_segment_set(bank_queue_length());
+    }
 }

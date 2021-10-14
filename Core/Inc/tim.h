@@ -20,6 +20,14 @@ void tim_sim_start(void);
 I32 tim_sim_running(void);
 
 /**
+ * Get the human readable time
+ * @param hour pointer to hour destination
+ * @param min pointer to minute destination
+ * @param sec pointer to second destination
+ */
+void human_time(U32* hour, U32* min, U32* sec);
+
+/**
  * Get current simulation time
  * @return sim time in ticks
  */
@@ -32,5 +40,19 @@ U32 tim_get_time(void);
  * @return Number of simulation ticks
  */
 U32 tim_time_to_tick(U32 minute, U32 seconds);
+
+/**
+ * Convert RTOS ticks to minutes
+ * @param ticks RTOS ticks
+ * @return minutes
+ */
+U32 tim_tick_to_min(U32 ticks);
+
+/**
+ * Convert RTOS ticks to (remainder) seconds
+ * @param ticks RTOS ricks
+ * @return seconds
+ */
+U32 tim_tick_to_second(U32 ticks);
 
 #endif //CMPE663_TIM_H
