@@ -11,7 +11,6 @@
 #include <rng.h>
 #include <semphr.h>
 #include <uart.h>
-#include <led.h>
 
 static QueueHandle_t customer_queue;
 static SemaphoreHandle_t status_mutex;
@@ -192,7 +191,7 @@ void teller_task(void* argument)
 
     // Wait until the status process is finished
     xSemaphoreTake(status_mutex, portMAX_DELAY);
-    xSemaphoreGive(status_mutex);
+    xSemaphoreGive(status_mutex); // let the other tellers sync up
 
     // Teller has finished for the day
     // Tell the parent task that it's done

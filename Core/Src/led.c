@@ -4,9 +4,8 @@
 
 #include <stm32l476xx.h>
 #include <teller.h>
+#include <tim.h>
 
-#include <FreeRTOS.h>
-#include <task.h>
 #include "stm32l4xx_hal.h"
 #include "led.h"
 
@@ -64,34 +63,30 @@
 
 void set_led_1(U32 on)
 {
-    if (on) // a5
-        HAL_GPIO_WritePin(SHLD_D13_GPIO_Port, SHLD_D13_Pin, GPIO_PIN_RESET);
-    else
-        HAL_GPIO_WritePin(SHLD_D13_GPIO_Port, SHLD_D13_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SHLD_D13_GPIO_Port,
+                      SHLD_D13_Pin,
+                      on ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 void set_led_2(U32 on)
 {
-    if (on) //a6
-        HAL_GPIO_WritePin(SHLD_D12_GPIO_Port, SHLD_D12_Pin, GPIO_PIN_RESET);
-    else
-        HAL_GPIO_WritePin(SHLD_D12_GPIO_Port, SHLD_D12_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SHLD_D12_GPIO_Port,
+                      SHLD_D12_Pin,
+                      on ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 void set_led_3(U32 on)
 {
-    if (on) //a7
-        HAL_GPIO_WritePin(SHLD_D11_GPIO_Port, SHLD_D11_Pin, GPIO_PIN_RESET);
-    else
-        HAL_GPIO_WritePin(SHLD_D11_GPIO_Port, SHLD_D11_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SHLD_D11_GPIO_Port,
+                      SHLD_D11_Pin,
+                      on ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 void set_led_4(U32 on)
 {
-    if (on)
-        HAL_GPIO_WritePin(SHLD_D10_GPIO_Port, SHLD_D10_Pin, GPIO_PIN_RESET);
-    else
-        HAL_GPIO_WritePin(SHLD_D10_GPIO_Port, SHLD_D10_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SHLD_D10_GPIO_Port,
+                      SHLD_D10_Pin,
+                      on ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 void gpio_led_init(void)
@@ -205,26 +200,34 @@ static void write_to_segment(I32 segment, U8 value)
     FW_ASSERT(segment >= 0 && segment < 4, segment);
     FW_ASSERT(value >= 0 && value < 10, value);
 
-    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port, SHLD_D4_SEG7_Latch_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port,
+                      SHLD_D4_SEG7_Latch_Pin,
+                      GPIO_PIN_RESET);
     shift_out(SEGMENT_MAP[value]);
     shift_out(SEGMENT_SELECT[segment]);
-    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port, SHLD_D4_SEG7_Latch_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SHLD_D4_SEG7_Latch_GPIO_Port,
+                      SHLD_D4_SEG7_Latch_Pin,
+                      GPIO_PIN_SET);
 }
 
 void seven_segment_set(U32 number)
 {
+    // Only write to the segments that need to
+    // be written to.
     I32 i = 3;
-    while (i >= 0)
+    do
     {
         write_to_segment(i--, number % 10);
         number /= 10;
-    }
+    } while (number > 0 && i >= 0);
 }
 
 void seven_segment_task(void* argument)
 {
     (void) argument;
 
+    // This task is running at a lower priority
+    // Consume all the idle cycles by writing to the seven segment
     while (1)
     {
         seven_segment_set(bank_queue_length());

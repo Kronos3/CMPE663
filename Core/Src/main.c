@@ -67,7 +67,6 @@ const osThreadAttr_t teller_1_attributes = {
         .stack_size = 128 * 2,
         .priority = (osPriority_t) osPriorityNormal,
 };
-
 osThreadId_t teller_2_handle;
 const osThreadAttr_t teller_2_attributes = {
         .name = "teller_2",
@@ -84,13 +83,13 @@ osThreadId_t status_handle;
 const osThreadAttr_t status_attributes = {
         .name = "status",
         .stack_size = 128 * 2,
-        .priority = (osPriority_t) osPriorityAboveNormal,
+        .priority = (osPriority_t) osPriorityBelowNormal,
 };
 osThreadId_t seven_handle;
 const osThreadAttr_t seven_attributes = {
         .name = "seven",
         .stack_size = 128,
-        .priority = (osPriority_t) osPriorityBelowNormal,
+        .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE END PV */
 
@@ -368,20 +367,25 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void* argument)
 {
     /* USER CODE BEGIN 5 */
-    set_led_1(0);
-    set_led_2(0);
-    set_led_3(0);
-    set_led_4(0);
+    (void) argument;
+    U32 light = 0;
 
     // Keep creating customers until the bank closes
     while (tim_sim_running())
     {
         // Wait for the new customer to enter the bank
         // Each new customer arrives every one to four minutes.
+#ifndef BANK_FILL
         U32 wait_time = rng_new(
-                tim_time_to_tick(0, 30),
-                tim_time_to_tick(2, 0)
+                tim_time_to_tick(1, 0),
+                tim_time_to_tick(4, 0)
         );
+#else
+        U32 wait_time = rng_new(
+                tim_time_to_tick(0, 45),
+                tim_time_to_tick(1, 0)
+        );
+#endif
 
         vTaskDelay(wait_time);
 
@@ -394,13 +398,13 @@ void StartDefaultTask(void* argument)
         };
 
         bank_queue_customer(&new_customer);
-    }
 
-    // Set all the LEDs on to indicate finish
-    set_led_1(1);
-    set_led_2(1);
-    set_led_3(1);
-    set_led_4(1);
+        set_led_1(light & 0x1);
+        set_led_2(light & 0x2);
+        set_led_3(light & 0x4);
+        set_led_4(light & 0x8);
+        light++;
+    }
 
     // Hang the task
     while (1)

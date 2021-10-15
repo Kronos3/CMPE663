@@ -5,7 +5,6 @@
 #include "tim.h"
 #include <FreeRTOS.h>
 #include <timers.h>
-#include <uart.h>
 
 static U32 tim_start_time = 0;
 static U32 tim_end_time = 0;

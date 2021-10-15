@@ -7,13 +7,18 @@
 
 static inline void usart_putchar(USART_TypeDef* USARTx, U8 c)
 {
-    while (!(USARTx->ISR & USART_ISR_TXE));                            // wait until TXE (TX empty) bit is set
-    USARTx->TDR = c;        // writing USART_TDR automatically clears the TXE flag
+    // wait until TXE (TX empty) bit is set
+    // (wait until we are ready to write another byte)
+    while (!(USARTx->ISR & USART_ISR_TXE));
+
+    // writing USART_TDR automatically clears the TXE flag
+    USARTx->TDR = c;
 }
 
 static inline void usart_flush(USART_TypeDef* USARTx)
 {
-    while (!(USARTx->ISR & USART_ISR_TC));                                    // wait until TC bit is set
+    // wait until TC bit is set (transmission complete)
+    while (!(USARTx->ISR & USART_ISR_TC));
     USARTx->ISR &= ~USART_ISR_TC;
 }
 
@@ -144,5 +149,6 @@ I32 printf_tumbar(
         iter++;
     }
 
+    usart_flush(USARTx);
     return iter - format;
 }

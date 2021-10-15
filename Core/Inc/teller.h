@@ -7,7 +7,7 @@
 
 #include <types.h>
 
-#define MAX_QUEUE_LENGTH 32
+#define MAX_QUEUE_LENGTH 256
 
 typedef enum {
     TELLER_1,
