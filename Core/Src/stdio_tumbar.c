@@ -79,10 +79,11 @@ static inline void usart_put_dec(
 static inline void usart_put_hex(
         USART_TypeDef* USARTx, int i, char base_hex_a)
 {
+    // TODO(tumbar) Make this not shitty
     usart_putchar(USARTx, base_hex_a + ((i & 0xF0000000) >> 28));
     usart_putchar(USARTx, base_hex_a + ((i & 0x0F000000) >> 24));
     usart_putchar(USARTx, base_hex_a + ((i & 0x00F00000) >> 20));
-    usart_putchar(USARTx, base_hex_a + ((i & 0xF00F0000) >> 16));
+    usart_putchar(USARTx, base_hex_a + ((i & 0x000F0000) >> 16));
     usart_putchar(USARTx, base_hex_a + ((i & 0x0000F000) >> 12));
     usart_putchar(USARTx, base_hex_a + ((i & 0x00000F00) >> 8));
     usart_putchar(USARTx, base_hex_a + ((i & 0x000000F0) >> 4));

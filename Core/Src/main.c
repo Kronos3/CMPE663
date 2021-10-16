@@ -44,7 +44,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define BANK_FILL
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -83,7 +83,7 @@ osThreadId_t status_handle;
 const osThreadAttr_t status_attributes = {
         .name = "status",
         .stack_size = 128 * 2,
-        .priority = (osPriority_t) osPriorityBelowNormal,
+        .priority = (osPriority_t) osPriorityNormal,
 };
 osThreadId_t seven_handle;
 const osThreadAttr_t seven_attributes = {

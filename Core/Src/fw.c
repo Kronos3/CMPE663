@@ -11,6 +11,10 @@ void fw_assertion_failure(const char* file, U32 line,
                           const char* expr_str,
                           U32 nargs, ...)
 {
+    // Mask all interrupts
+    // Assertion reached, nothing else should run
+    __asm__ ("CPSID I");
+
     uprintf_no_lock(
             "Assertion failed %s:%d : (%s)",
             file, line, expr_str);
