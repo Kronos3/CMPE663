@@ -8,13 +8,16 @@ Real-time and Embedded Systems
 Install an Arm GCC compiler with the following toolchain:
 
 ```bash
-$ ls ~/arm-gcc
-arm-none-eabi-addr2line  arm-none-eabi-elfedit    arm-none-eabi-gcc-ranlib     arm-none-eabi-gdb-add-index-py  arm-none-eabi-objcopy  arm-none-eabi-strip
-arm-none-eabi-ar         arm-none-eabi-g++        arm-none-eabi-gcov           arm-none-eabi-gdb-py            arm-none-eabi-objdump
-arm-none-eabi-as         arm-none-eabi-gcc        arm-none-eabi-gcov-dump      arm-none-eabi-gprof             arm-none-eabi-ranlib
-arm-none-eabi-c++        arm-none-eabi-gcc-9.3.1  arm-none-eabi-gcov-tool      arm-none-eabi-ld                arm-none-eabi-readelf
-arm-none-eabi-c++filt    arm-none-eabi-gcc-ar     arm-none-eabi-gdb            arm-none-eabi-ld.bfd            arm-none-eabi-size
-arm-none-eabi-cpp        arm-none-eabi-gcc-nm     arm-none-eabi-gdb-add-index  arm-none-eabi-nm                arm-none-eabi-strings
+$ ls /usr/bin/arm-none-eabi-*
+arm-none-eabi-addr2line   arm-none-eabi-c++filt     arm-none-eabi-g++         arm-none-eabi-gcc-nm      arm-none-eabi-gcov-tool   arm-none-eabi-ld.gold     arm-none-eabi-objdump     arm-none-eabi-strings
+arm-none-eabi-ar          arm-none-eabi-cpp         arm-none-eabi-gcc         arm-none-eabi-gcc-ranlib  arm-none-eabi-gprof       arm-none-eabi-lto-dump    arm-none-eabi-ranlib      arm-none-eabi-strip
+arm-none-eabi-as          arm-none-eabi-dwp         arm-none-eabi-gcc-11.2.0  arm-none-eabi-gcov        arm-none-eabi-ld          arm-none-eabi-nm          arm-none-eabi-readelf     
+arm-none-eabi-c++         arm-none-eabi-elfedit     arm-none-eabi-gcc-ar      arm-none-eabi-gcov-dump   arm-none-eabi-ld.bfd      arm-none-eabi-objcopy     arm-none-eabi-size
+```
+
+Installing the toolchain on Arch Linux:
+```bash
+$ pacman -S arm-none-gcc
 ```
 
 Add to `$PATH` so that CMake may find these tools. See `CMakeLists.txt` for more information
@@ -56,6 +59,7 @@ use the `screen` tool to connect.
 
 ```bash
 $ screen /dev/ttyACM0 BAUDRATE
+$ screen /dev/ttyACM0 115200
 ```
 
 Use `CTRL-A k` to kill the session.

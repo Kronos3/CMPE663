@@ -19,10 +19,18 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "timer.h"
+#include "uart.h"
+#include <led.h>
+#include <teller.h>
+#include <rng.h>
+#include <tim.h>
+#include <metrics.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,14 +44,53 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+//#define BANK_FILL
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+RNG_HandleTypeDef hrng;
+
 UART_HandleTypeDef huart2;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+        .name = "defaultTask",
+        .stack_size = 128 * 4,
+        .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 
+osThreadId_t teller_1_handle;
+const osThreadAttr_t teller_1_attributes = {
+        .name = "teller_1",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t teller_2_handle;
+const osThreadAttr_t teller_2_attributes = {
+        .name = "teller_2",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t teller_3_handle;
+const osThreadAttr_t teller_3_attributes = {
+        .name = "teller_3",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t status_handle;
+const osThreadAttr_t status_attributes = {
+        .name = "status",
+        .stack_size = 128 * 2,
+        .priority = (osPriority_t) osPriorityNormal,
+};
+osThreadId_t seven_handle;
+const osThreadAttr_t seven_attributes = {
+        .name = "seven",
+        .stack_size = 128,
+        .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -52,6 +99,11 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 
 static void MX_USART2_UART_Init(void);
+
+static void MX_RNG_Init(void);
+
+void StartDefaultTask(void* argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -90,14 +142,68 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_USART2_UART_Init();
+    MX_RNG_Init();
     /* USER CODE BEGIN 2 */
+
+    gpio_led_init();
 
     /* USER CODE END 2 */
 
+    /* Init scheduler */
+    osKernelInitialize();
+
+    /* USER CODE BEGIN RTOS_MUTEX */
+    teller_init();
+    rng_init();
+    uart_init();
+    metric_init();
+    /* add mutexes, ... */
+    /* USER CODE END RTOS_MUTEX */
+
+    /* USER CODE BEGIN RTOS_SEMAPHORES */
+    /* add semaphores, ... */
+    /* USER CODE END RTOS_SEMAPHORES */
+
+    /* USER CODE BEGIN RTOS_TIMERS */
+    /* start timers, add new ones, ... */
+    tim_sim_start();
+    /* USER CODE END RTOS_TIMERS */
+
+    /* USER CODE BEGIN RTOS_QUEUES */
+    /* add queues, ... */
+    /* USER CODE END RTOS_QUEUES */
+
+    /* Create the thread(s) */
+    /* creation of defaultTask */
+    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+    /* USER CODE BEGIN RTOS_THREADS */
+    /* add threads, ... */
+    teller_1_handle = osThreadNew(
+            teller_task, (void*) TELLER_1, &teller_1_attributes);
+    teller_2_handle = osThreadNew(
+            teller_task, (void*) TELLER_2, &teller_2_attributes);
+    teller_3_handle = osThreadNew(
+            teller_task, (void*) TELLER_3, &teller_3_attributes);
+    status_handle = osThreadNew(
+            status_task, NULL, &status_attributes);
+    seven_handle = osThreadNew(
+            seven_segment_task, NULL, &seven_attributes);
+    /* USER CODE END RTOS_THREADS */
+
+    /* USER CODE BEGIN RTOS_EVENTS */
+    /* add events, ... */
+    /* USER CODE END RTOS_EVENTS */
+
+    /* Start scheduler */
+    osKernelStart();
+
+    /* We should never get here as control is now taken by the scheduler */
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        FW_ASSERT(0);
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -150,6 +256,32 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
+}
+
+/**
+  * @brief RNG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RNG_Init(void)
+{
+
+    /* USER CODE BEGIN RNG_Init 0 */
+
+    /* USER CODE END RNG_Init 0 */
+
+    /* USER CODE BEGIN RNG_Init 1 */
+
+    /* USER CODE END RNG_Init 1 */
+    hrng.Instance = RNG;
+    if (HAL_RNG_Init(&hrng) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN RNG_Init 2 */
+
+    /* USER CODE END RNG_Init 2 */
+
 }
 
 /**
@@ -224,6 +356,63 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  *         Generates customers comings into the queue at random intervals
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void* argument)
+{
+    /* USER CODE BEGIN 5 */
+    (void) argument;
+    U32 light = 0;
+
+    // Keep creating customers until the bank closes
+    while (tim_sim_running())
+    {
+        // Wait for the new customer to enter the bank
+        // Each new customer arrives every one to four minutes.
+#ifndef BANK_FILL
+        U32 wait_time = rng_new(
+                tim_time_to_tick(1, 0),
+                tim_time_to_tick(4, 0)
+        );
+#else
+        U32 wait_time = rng_new(
+                tim_time_to_tick(0, 45),
+                tim_time_to_tick(1, 0)
+        );
+#endif
+
+        vTaskDelay(wait_time);
+
+        // Each customer requires between 30 seconds and 8 minutes for their transaction with the teller
+        Customer new_customer = {
+                .transaction_time = rng_new(
+                        tim_time_to_tick(0, 30),
+                        tim_time_to_tick(8, 0)),
+                .queue_start = tim_get_time()
+        };
+
+        bank_queue_customer(&new_customer);
+
+        set_led_1(light & 0x1);
+        set_led_2(light & 0x2);
+        set_led_3(light & 0x4);
+        set_led_4(light & 0x8);
+        light++;
+    }
+
+    // Hang the task
+    while (1)
+    { vTaskDelay(portMAX_DELAY); }
+
+    /* USER CODE END 5 */
+}
+
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
@@ -231,11 +420,7 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
-    /* User can add his own implementation to report the HAL error return state */
-    __disable_irq();
-    while (1)
-    {
-    }
+    FW_ASSERT(0 && "Error handler");
     /* USER CODE END Error_Handler_Debug */
 }
 

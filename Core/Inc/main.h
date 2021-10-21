@@ -37,15 +37,6 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef char I8;
-typedef unsigned char U8;
-typedef short I16;
-typedef unsigned short U16;
-typedef int I32;
-typedef unsigned int U32;
-
-typedef float F32;
-typedef double F64;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -68,10 +59,6 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
-#define USART_TX_Pin GPIO_PIN_2
-#define USART_TX_GPIO_Port GPIOA
-#define USART_RX_Pin GPIO_PIN_3
-#define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13

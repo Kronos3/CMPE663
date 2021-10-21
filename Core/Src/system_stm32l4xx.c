@@ -276,7 +276,8 @@ void SystemCoreClockUpdate(void)
     if ((RCC->CR & RCC_CR_MSIRGSEL) == 0U)
     { /* MSISRANGE from RCC_CSR applies */
         msirange = (RCC->CSR & RCC_CSR_MSISRANGE) >> 8U;
-    } else
+    }
+    else
     { /* MSIRANGE from RCC_CR applies */
         msirange = (RCC->CR & RCC_CR_MSIRANGE) >> 4U;
     }
