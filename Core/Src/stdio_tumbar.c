@@ -91,9 +91,9 @@ static inline void usart_put_hex(
 }
 
 I32 printf_tumbar(
-        void* USARTx, const char * const format,
-        va_list args
-        )
+        void* USARTx,
+        const char * const format,
+        va_list args)
 {
     const char* iter = format;
     while (*iter)

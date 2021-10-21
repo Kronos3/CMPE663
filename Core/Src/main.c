@@ -44,7 +44,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define BANK_FILL
+//#define BANK_FILL
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/

@@ -95,8 +95,7 @@ static inline U32 statistic_average(const Statistic* self)
 
 void metrics_display(void)
 {
-    uprintf(
-            "1. The total number of customers: %u\r\n"
+    uprintf("1. The total number of customers: %u\r\n"
             "2. Number of customers served (each teller): %u, %u, %u\r\n"
             "3. The average time each customer spends waiting in the queue: " TIME_FORMAT "\r\n"
             "4. The average time each customer spends with the teller: " TIME_FORMAT "\r\n"
@@ -104,7 +103,14 @@ void metrics_display(void)
             "6. The maximum customer wait time in the queue: " TIME_FORMAT "\r\n"
             "7. The maximum wait time for tellers waiting for customers: " TIME_FORMAT "\r\n"
             "8. The maximum transaction time for the tellers: " TIME_FORMAT "\r\n"
-            "9. Maximum queue depth: %u\r\n",
+            "9. Maximum queue depth: %u\r\n"
+
+            "=== Grad student additional metrics ===\r\n"
+            "Number of breaks (each teller): %u, %u, %u\r\n"
+            "Average break time (each teller): "  TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n"
+            "Longest break time (each teller): "  TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n"
+            "Shortest break time (each teller): " TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n",
+
             metrics.customers[0] + metrics.customers[1] + metrics.customers[2],
             metrics.customers[0], metrics.customers[1], metrics.customers[2],
             TIME_ARGS(statistic_average(&metrics.statistics[METRIC_CUSTOMER_WAIT])),
@@ -113,27 +119,24 @@ void metrics_display(void)
             TIME_ARGS(metrics.statistics[METRIC_CUSTOMER_WAIT].max),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_WAIT].max),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_SERVICE].max),
-            metrics.max_depth
-    );
+            metrics.max_depth,
 
-    uprintf("\r\n=== Grad student additional metrics ===\r\n"
-            "Number of breaks (each teller): %u, %u, %u\r\n"
-            "Average break time (each teller): "  TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n"
-            "Longest break time (each teller): "  TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n"
-            "Shortest break time (each teller): " TIME_FORMAT ", " TIME_FORMAT ", " TIME_FORMAT "\r\n",
-
+            // Grad student statistics
             metrics.statistics[METRIC_TELLER_1_BREAK].n,
             metrics.statistics[METRIC_TELLER_2_BREAK].n,
             metrics.statistics[METRIC_TELLER_3_BREAK].n,
 
+            // Average break times
             TIME_ARGS(statistic_average(&metrics.statistics[METRIC_TELLER_1_BREAK])),
             TIME_ARGS(statistic_average(&metrics.statistics[METRIC_TELLER_2_BREAK])),
             TIME_ARGS(statistic_average(&metrics.statistics[METRIC_TELLER_3_BREAK])),
 
+            // Max break times
             TIME_ARGS(metrics.statistics[METRIC_TELLER_1_BREAK].max),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_2_BREAK].max),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_3_BREAK].max),
 
+            // Minimum break times
             TIME_ARGS(metrics.statistics[METRIC_TELLER_1_BREAK].min),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_2_BREAK].min),
             TIME_ARGS(metrics.statistics[METRIC_TELLER_3_BREAK].min)
