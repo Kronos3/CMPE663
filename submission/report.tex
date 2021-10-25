@@ -142,4 +142,11 @@
       \label{fig:fault_pc}
     \end{figure}
 
+	In this particular instance, the task control block's stack pointer was moved to
+	an invalid address therefore causing the kernel to fault out when attempting a
+	context switch. This specific instruction will save the tasks core registers not
+	explicitely saved by an ISR onto the tasks stack. In the future, this mechanism
+	will be useful in quickly determining issues related to programming errors such
+	as the one caused by non-threadsafe use of \code{vsnprintf} in this exercise.
+
 \end{document}
