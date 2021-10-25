@@ -7,12 +7,12 @@
 
 #include <stdint.h>
 
-typedef int8_t I8;
-typedef uint8_t U8;
-typedef int16_t I16;
-typedef uint16_t U16;
-typedef int32_t I32;
-typedef uint32_t U32;
+typedef signed char I8;
+typedef unsigned char U8;
+typedef signed short I16;
+typedef unsigned short U16;
+typedef signed int I32;
+typedef unsigned int U32;
 
 typedef float F32;
 typedef double F64;

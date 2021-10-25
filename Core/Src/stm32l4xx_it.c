@@ -25,8 +25,7 @@
 #include "task.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <types.h>
-#include <uart.h>
+#include <fw.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,7 +35,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define FAULT_HANDLER(t)   \
+    __asm volatile(        \
+        "isb \n"           \
+        "dsb \n"           \
+        "tst lr, #4    \n"    /* Check which stack the interrupted function was using */ \
+        "ite eq        \n"    /* Set up ARM conditional */ \
+        "mrseq r0, msp \n"    /* Move the correct stack address to r0 */ \
+        "mrsne r0, psp \n" \
+        "mov r1, %0    \n" \
+        "bl print_context_and_fault \n"   /* Call load_context_from_stack(sp) */ \
+    ::"i" (t) )
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -62,46 +71,7 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
-void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
-{
-/* These are volatile to try and prevent the compiler/linker optimising them
-away as the variables never actually get used.  If the debugger won't show the
-values of the variables, make them global my moving their declaration outside
-of this function. */
-    volatile uint32_t r0;
-    volatile uint32_t r1;
-    volatile uint32_t r2;
-    volatile uint32_t r3;
-    volatile uint32_t r12;
-    volatile uint32_t lr; /* Link register. */
-    volatile uint32_t pc; /* Program counter. */
-    volatile uint32_t psr;/* Program status register. */
 
-    r0 = pulFaultStackAddress[ 0 ];
-    r1 = pulFaultStackAddress[ 1 ];
-    r2 = pulFaultStackAddress[ 2 ];
-    r3 = pulFaultStackAddress[ 3 ];
-
-    r12 = pulFaultStackAddress[ 4 ];
-    lr = pulFaultStackAddress[ 5 ];
-    pc = pulFaultStackAddress[ 6 ];
-    psr = pulFaultStackAddress[ 7 ];
-
-    uprintf_no_lock("HardFault reached:\r\n"
-                    "  r0: 0x%x\r\n"
-                    "  r1: 0x%x\r\n"
-                    "  r2: 0x%x\r\n"
-                    "  r3: 0x%x\r\n"
-                    " r12: 0x%x\r\n"
-                    "  lr: 0x%x\r\n"
-                    "  pc: 0x%x\r\n"
-                    " psr: 0x%x\r\n",
-                    r0, r1, r2, r3,
-                    r12, lr, pc, psr);
-
-    /* When the following line is hit, the variables contain the register values. */
-    for( ;; );
-}
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -128,19 +98,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-    __asm volatile
-    (
-    " tst lr, #4                                                \n"
-    " ite eq                                                    \n"
-    " mrseq r0, msp                                             \n"
-    " mrsne r0, psp                                             \n"
-    " ldr r1, [r0, #24]                                         \n"
-    " ldr r2, handler2_address_const                            \n"
-    " bx r2                                                     \n"
-    " handler2_address_const: .word prvGetRegistersFromStack    \n"
-    );
-}
-void d_(void) {
+    FAULT_HANDLER(HARD_FAULT);
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -155,7 +113,7 @@ void d_(void) {
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
+    FAULT_HANDLER(MEM_MANAGE);
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -170,7 +128,7 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+    FAULT_HANDLER(BUS_FAULT);
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -185,7 +143,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+    FAULT_HANDLER(USAGE_FAULT);
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {

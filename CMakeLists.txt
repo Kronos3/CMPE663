@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.20)
 # specify cross compilers and tools
 set(SIZE arm-none-eabi-size)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_OBJCOPY arm-none-eabi-objcopy)
+set(CMAKE_OBJDUMP arm-none-eabi-objdump)
 
 # project settings
 project(CMPE663 C CXX ASM)

@@ -83,13 +83,13 @@ osThreadId_t status_handle;
 const osThreadAttr_t status_attributes = {
         .name = "status",
         .stack_size = 128 * 2,
-        .priority = (osPriority_t) osPriorityNormal,
+        .priority = (osPriority_t) osPriorityBelowNormal,
 };
 osThreadId_t seven_handle;
 const osThreadAttr_t seven_attributes = {
         .name = "seven",
         .stack_size = 128,
-        .priority = (osPriority_t) osPriorityNormal,
+        .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* USER CODE END PV */
 

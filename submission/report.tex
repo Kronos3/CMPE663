@@ -9,8 +9,8 @@
 \newcommand{\LabSectionNum}{1}
 \newcommand{\LabInstructor}{Wolfe}
 \newcommand{\TAs}{Nitin Borhade}
-\newcommand{\exerciseNumber}{2}
-\newcommand{\exerciseDescription}{Servos}
+\newcommand{\exerciseNumber}{3}
+\newcommand{\exerciseDescription}{Bank}
 
 \usepackage{tikz}
 \usepackage{circuitikz}
@@ -34,79 +34,112 @@
     \maketitle
     \section*{Analysis/Design}
 
-    This project looked at implementing a motor controller that could take
-    user input as well as run a predefined set of instructions. Instructions
-    were encoded into a single byte with the first three bits acting as an
-    op-code and the final five bits as a a parameter. The design of the entire
-    system was split into multiple independent modules. An executor was created
-    for executing task modules at various rates. A table of tasks can be found
-    in \code{main()} called \code{task\_table[]}. \\
-    
-    \begin{figure}[h!]
-      \centering
-      \includegraphics[width=5.5in]{servo_proj_design}
-      \caption{Design of servo control project}
-      \label{fig:overview}
-    \end{figure}
-    
-    The first and most
-    important module is \code{mot} (Motor). This module is responsible for
-    keeping track of motor position and providing a public interface for
-    getting and setting motor position. This module utilized a PWM conversion
-    table to produce a correct duty-cycle given a target position.\\
+    This project looked at implementing a simulated bank using the
+    features provided by FreeRTOS. The bank was simulated by providing
+    accurate and scaled timings for transactions between customers and
+    bank tellers. Random variables that drove the probabilities of certain
+    actions were generated using the hardware RNG over a uniform distrobution
+    across given boundaries. \\
 
-    \code{seq} (Sequence or recipe) is responsible for keeping state of an
-    executing recipe on the specified motor. Two sequence engines were
-    instantiated pointing to either servo motors. The implementation involved
-    a program counter and instruction table to decode from.
-    Each opcode would then dispatch a separate function and could interface
-    with \code{mot} if needed. Because the \code{seq} module was implemented
-    as a task (as opposed to \code{mot} which is a service), it has a executor
-    interface that is expected to be called at 10 Hz.\\
+	\subsection*{Simulation}
 
-	Finally, \code{usr} and \code{led} are also implemented as tasks, however
-	their execution are not delayed by a hardware timer. Their non-blocking
-	task will be executed at the maximum speed the software can attain. \code{led}
-	simply looks at the status code of both sequence engines and controls four
-	LEDs to denote each of the four states per motor. \code{usr} will take input
-	from the user and control \code{seq} and \code{mot} as needed.
+	The design of the bank involved four main tasks in addition to two status
+	tasks. Each teller is given its own RTOS task and they are all waiting on
+	the same queue. FreeRTOS's scheduler works by scheduling the task with the
+	highest priority that is ready to execute. If multiple ready tasks have the
+	same priority, the scheduler will alternate between them. This means that if
+	multiple tasks with the same priority are to block due to a queue, the task
+	that has not been serviced over the longest time interval will be scheduled
+	next. In other words, the teller that has not seen a client for the longest
+	time, will be given priority to pick from the queue. This allows a fair
+	distrobution of customers to each of the three tellers.\\
+
+	The fourth task running on the RTOS involves adding customers to the queue.
+	It will generate a customer in a random time interval and queue the customer.
+	When the work day is up, this task will self suspend.
+
+	\subsection*{Metrics}
+
+	An important aspect of this project was to provide a mechanism for reporting
+	simulation metrics at the end of the work day. Because all metrics could be
+	fit into either a maximum, minimum, or arithmetic average, a \code{Statistic}
+	data structure was created to model any metric that was asked for. During the
+	relevant events, the teller or the customer creation tasks would report a metric
+	which would in turn be added to its corresponding statistic structure. When
+	reporting the totals at the end, averages could easily be calculated from the
+	sum and count of the statistic and min/max were kept track of as each event was
+	reported.
+
+	\subsection*{Status}
+
+	The two status tasks running at lower priority simply handle writing the
+	current teller status to the uart and writing to the seven segment display.
+	They are running at a lower priority for two reasons. First being that the
+	simulation accuracy would be slightly impacted if they were running at the
+	same priority as the tellers. Secondly, putting these tasks at a lower
+	priority allows them to run during all of the idle time that the CPU had.
+	This proved to be fast enough to provide accurate status while still
+	maintaining accuracy.
 
 	\subsection*{Grad-portion}
 
-	For the grad-portion of the assignment, an extra op-code was implemented
-	called \code{ERROR\_IF}. This opcode would check the position of the opposite
-	motor and cause recipe failure if the motor was at a given position. For
-	example, if \code{ERROR\_IF|3} was running on motor \code{1} and motor
-	\code{2} was at position \code{3}, the recipe on motor \code{1} would fault
-	out. To easily test this behaviour, an extra set of user command was
-	implemented, any ascii character from \code{'0'} to \code{'5'} could directly
-	set the position of the motor in question.
+	The grad-portion of this assignment involved writing to the seven segment
+	display. Because the seven segment display works by keeping a single command
+	in its memory, each digit in the number had to be continously written to the
+	display to get a proper reading. The task performing this action runs a constant
+	loop absorbing as many cycles are possible to create a clear image.
 
     \section*{Test Plan}
 
-    Testing the code was fairly straighforward. I started by implementing
-   	\code{mot} and testing each motor position on either motor. Once this
-   	was working, I wrote the \code{seq} state machine and made sure the timing
-   	provided by \code{TIM5} was accurate. The extra set of user commands
-   	discussed in the grad-portion section of this document also proved very
-   	useful for the testing of \code{usr}, \code{seq} and \code{mot}.
+    Testing the code was fairly straighforward. The UART status task was updated
+    in realtime and therefore showed most of the errors on the spot. The uniform
+    distrobution of the RNG could be verified by making sure the minimum and maximum
+    were close to the specified boundaries as well as the average being halfway between
+    the two. The seven segment display was tested using the given customer entry rates
+    as well as increased rates designed to fill the queue more.
 
     \section*{Project Results}
 
-    The software behaved as expected by the problem statement. Motor 1's
-    recipe \code{MOV} commands as well as the \code{WAIT} commands produced
-    the expected delays of $9.3s + 0.2 \cdot \delta_{position}$. User input
-    could be gathered at any point during program execution including during
-    the execution of a recipe. This was done by writing all tasks as a
-    non-blocking interface so as to allow the execution of all tasks.
+    The software behaved as expected by the problem statement. All random numbers
+    generated expected results and the simulation ran in the expected amount of
+    time. The metrics reported at the end of the simulation showed that the parameters
+    controlling the simulation as well as the design of the bank were correct.
 
     \section*{Lessons Learned}
 
-	This project explored creating an embedded system with multiple simultaneous
-	cooperating tasks running. It also tought me how servo motors are controlled
-	with a PWM signal. While the hardware component of this project was fairly
-	straightforward, the software was written to be robust enough to fault
-	execution if invalid branches or parameters were seen. This caught several
-	bugs and sped for project up considerably.
+	This project explored creating an embedded system on top of FreeRTOS. I learned
+	how to use the API reference to quickly implement the components I needed in this
+	realtime system. Task scheduling priority and preemption became clear when
+	expirementing with task attributes during development. The most major issue that
+	I ran into during development was a hardfault inside the teller. I created an
+	efficient way to debug hardfaults (and other faults) by creating an assembly
+	subroutine to extract the core registers saved when the hardfault interrupt was
+	triggered. This allowed me to view the instruction and register values of the
+	problematic code. The problematic code ended being related to a libc library call
+	\code{vsnprintf} not being thread-safe and therefore causing issues within FreeRTOS.
+
+	\pagebreak
+
+	Below is an example of a hardfault occuring when overwriting part of the task
+	control block (FreeRTOS's structure for keeping track of tasks) causing the
+	context switcher to fault out:
+
+	\begin{figure}[h!]
+      \centering
+      \includegraphics[width=5.5in]{hardfault}
+      \caption{Example of hardfault handler}
+      \label{fig:fault}
+    \end{figure}
+
+	Looking at the program counter in Figure \ref{fig:fault}, we can find the appropriate
+	assembly instruction in the generated ELF binary. To do this, LLVM's objdump tool
+	was used to decode the binary.
+
+	\begin{figure}[h!]
+      \centering
+      \includegraphics[width=5.5in]{fault_pc}
+      \caption{Decoded instruction at faulty program counter}
+      \label{fig:fault_pc}
+    \end{figure}
 
 \end{document}
