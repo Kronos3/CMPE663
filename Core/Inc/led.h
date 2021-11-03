@@ -19,6 +19,5 @@ void set_led_3(U32 on);
 void set_led_4(U32 on);
 
 void seven_segment_set(U32 number);
-void seven_segment_task(void* argument);
 
 #endif //CMPE663_LED_H

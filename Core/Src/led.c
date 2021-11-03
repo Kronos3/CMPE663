@@ -3,8 +3,6 @@
 //
 
 #include <stm32l476xx.h>
-#include <teller.h>
-#include <tim.h>
 
 #include "stm32l4xx_hal.h"
 #include "led.h"
@@ -220,16 +218,4 @@ void seven_segment_set(U32 number)
         write_to_segment(i--, number % 10);
         number /= 10;
     } while (number > 0 && i >= 0);
-}
-
-void seven_segment_task(void* argument)
-{
-    (void) argument;
-
-    // This task is running at a lower priority
-    // Consume all the idle cycles by writing to the seven segment
-    while (1)
-    {
-        seven_segment_set(bank_queue_length());
-    }
 }
