@@ -12,7 +12,7 @@ typedef unsigned char U8;
 typedef signed short I16;
 typedef unsigned short U16;
 typedef signed int I32;
-typedef unsigned int U32;
+typedef unsigned long U32;
 
 typedef float F32;
 typedef double F64;
@@ -35,6 +35,9 @@ __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, 
 #define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
 #define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
+#ifndef NULL
+#define NULL ((void*) 0)
+#endif
 
 #define FW_ASSERT(expr, ...) do {                \
     if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, COUNT_ARGUMENTS(__VA_ARGS__), ##__VA_ARGS__);   \

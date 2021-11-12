@@ -76,6 +76,20 @@ static inline void usart_put_dec(
     usart_put_udec(USARTx, i, pad_char, pad_amt);
 }
 
+static inline void usart_put_floating(USART_TypeDef* USARTx, double f)
+{
+    usart_put_dec(USARTx, (int)f, '0', 0);
+    f -= (int)f;
+
+    usart_putchar(USARTx, '.');
+    for (int i = 0; i < 6; i++)
+    {
+        f *= 10;
+        usart_putchar(USARTx, ((int) f) + '0');
+        f -= (int)f;
+    }
+}
+
 static inline void usart_put_hex(
         USART_TypeDef* USARTx, int i, char base_hex_a)
 {
@@ -124,6 +138,9 @@ I32 printf_tumbar(
                     break;
                 case 'X':
                     usart_put_hex(USARTx, va_arg(args, int), 'A');
+                    break;
+                case 'f':
+                    usart_put_floating(USARTx, va_arg(args, double));
                     break;
                 default:
                     pad_char = *(iter++);

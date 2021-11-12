@@ -3,23 +3,12 @@
 #include <stdarg.h>
 #include <types.h>
 
-#include <FreeRTOS.h>
-#include <semphr.h>
 #include <stdio_tumbar.h>
 
 
 // UART Ports:
 // ===================================================
 // PD.5 = USART2_TX (AF7)  |  PD.6 = USART2_RX (AF7)
-
-static SemaphoreHandle_t usart_lock = NULL;
-
-void USART_Write_no_lock(USART_TypeDef* USARTx, const U8* buffer, U32 nBytes);
-void uart_init(void)
-{
-    usart_lock = xSemaphoreCreateMutex();
-    FW_ASSERT(usart_lock && "Failed to initialize uart lock");
-}
 
 void USART2_Init(I32 baudrate)
 {
@@ -114,20 +103,20 @@ void uclear(void)
             0x1B, 0x5B, 0x48,           // Move cursor to home
     };
 
-    if (usart_lock) xSemaphoreTake(usart_lock, portMAX_DELAY);
+//    if (usart_lock) xSemaphoreTake(usart_lock, portMAX_DELAY);
     USART_Write(u_stdout, clear_screen_bytes, 7);
-    if (usart_lock) xSemaphoreGive(usart_lock);
+//    if (usart_lock) xSemaphoreGive(usart_lock);
 }
 
 
 I32 uprintf(const char* format_str, ...)
 {
     va_list l;
-    if (usart_lock) xSemaphoreTake(usart_lock, portMAX_DELAY);
+//    if (usart_lock) xSemaphoreTake(usart_lock, portMAX_DELAY);
     va_start(l, format_str);
     I32 n = printf_tumbar(u_stdout, format_str, l);
     va_end(l);
-    if (usart_lock) xSemaphoreGive(usart_lock);
+//    if (usart_lock) xSemaphoreGive(usart_lock);
     return n;
 }
 
