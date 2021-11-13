@@ -27,7 +27,7 @@
 #include <led.h>
 #include <dac_adc_ctrl.h>
 #include <stm32l4xx_hal_tim.h>
-#include <metrics.h>
+#include <p4.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,7 +130,7 @@ int main(void)
     // Clear the screen
     uclear();
 
-    dac_adc_init(&hadc1, &hdac1);
+    dac_adc_init();
 
     // Start the timer to trigger interrupts
     HAL_TIM_Base_Start_IT(&htim2);
@@ -145,8 +145,9 @@ int main(void)
         metrics_task();
         if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET)
         {
+            // Wait for falling edge
             while (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) != GPIO_PIN_SET);
-            adc_dac_toggle_state();
+            p4_switch_state();
         }
         /* USER CODE END WHILE */
 

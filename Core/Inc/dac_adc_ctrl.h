@@ -5,20 +5,31 @@
 #ifndef CMPE663_DAC_ADC_CTRL_H
 #define CMPE663_DAC_ADC_CTRL_H
 
+typedef enum {
+    DEVICE_RUNNING,     //!< DAC or ADC running
+    DEVICE_STOPPED
+} device_state_t;
+
+typedef enum {
+    CONTINUOUS,         //!< Keep feeding ADC into DAC
+    SINGLE,             //!< Feed ADC into DAC a single time
+    TEN,                //!< Feed ADC into DAC 10 times
+    STATE_N,
+} run_state_t;
+
+extern volatile device_state_t dac_state;
+extern volatile device_state_t adc_state;
+extern volatile run_state_t run_type;
+
 #define DYNAMIC_RANGE (1 << 12)
 
 // Drop three bits of accuracy (these are mostly just noise)
 #define BUF_SIZE (DYNAMIC_RANGE * 2)
 
 /**
- * Perform necessary initialization to
- * get the
- * @param hadc
- * @param hdac
+ * Initialize the first buffer to a new triangle wave
  */
-void dac_adc_init(void* hadc, void* hdac);
-
-void adc_start(void);
+void dac_adc_init(void);
 
 /**
  * Rotate the buffers being used for ADC and DAC
@@ -30,12 +41,21 @@ void adc_dac_rotate_buffers(void);
 
 /**
  * Interrupt handler for tim2
+ *   1. Write the new sample to the DAC
+ *   2. Trigger conversion on the ADC
+ *     if cycle is complete:
+ *          1. Queue up metrics calculation
+ *          2. Rotate Buffers:
+ *              DAC = ADC
+ *              ADC = clean_buffer
+ *          3. Restart cycle
  */
 void dac_tim2_int(void);
 
-void adc_dac_next_state(void);
-void adc_dac_set_continuous(void);
-void adc_dac_set_single(void);
-void adc_dac_toggle_state(void);
+/**
+ * Restart the sample indices of the ADC and DAC
+ * (restarts the current iterations)
+ */
+void adc_dac_restart(void);
 
 #endif //CMPE663_DAC_ADC_CTRL_H
