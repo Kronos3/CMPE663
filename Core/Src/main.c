@@ -135,6 +135,7 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        uclear();
         grad_pre_measurement();
         uprintf("\rReference measurement: %dmm\r\n",
                 ultrasonic_convert(ultrasonic_measure()));
@@ -218,6 +219,10 @@ int main(void)
                     mean, median,
                     stddev);
         }
+
+        uprintf("Press any key to run again\r\n");
+        while (!(USART2->ISR & USART_ISR_RXNE));
+        (void) (USART2->RDR & 0xFF);
 
         /* USER CODE END WHILE */
 

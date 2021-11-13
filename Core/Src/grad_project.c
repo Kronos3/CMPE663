@@ -31,10 +31,6 @@ status_t grad_post(void)
 
 void grad_pre_measurement(void)
 {
-    uprintf("Press any key to start calibration\r\n");
-    while (!(USART2->ISR & USART_ISR_RXNE));
-    (void) (USART2->RDR & 0xFF);
-
     // Display a prompt with a live feed of the current measurement
     uprintf("Press any key when distance is satisfactory\r\n");
 
