@@ -34,7 +34,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+//#define CSV_LINE_SEP "|"
+#define CSV_LINE_SEP "\r\n"
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -179,6 +180,7 @@ int main(void)
 
         if (measure_stat == STATUS_SUCCESS)
         {
+            uprintf("=======================\r\n");
             U32 minimum = -1;
             U32 maximum = 0;
             U32 mean_sum = 0;
@@ -186,7 +188,7 @@ int main(void)
             for (U32 i = 0; i < MEASURE_N; i++)
             {
                 U32 curr = ultrasonic_measurements[i];
-                uprintf("%d,%d\r\n", i + 1, curr);
+                uprintf("%d,%d"CSV_LINE_SEP, i + 1, curr);
 
                 // Update the metrics that we can
                 mean_sum += curr;
@@ -210,17 +212,18 @@ int main(void)
             F64 stddev = sqrt((F64) stddev_sum / MEASURE_N);
 
             // Print the stats
-            uprintf("Minimum,%d\r\n"
-                    "Maximum,%d\r\n"
-                    "Mean,%d\r\n"
-                    "Median,%d\r\n"
-                    "Stddev,%f\r\n",
+            uprintf("Minimum,%d"CSV_LINE_SEP
+                    "Maximum,%d"CSV_LINE_SEP
+                    "Mean,%d"CSV_LINE_SEP
+                    "Median,%d"CSV_LINE_SEP
+                    "Stddev,%f"
+                    "\r\n=======================\r\n",
                     minimum, maximum,
                     mean, median,
                     stddev);
         }
 
-        uprintf("Press any key to run again\r\n");
+        uprintf("== Press any key to run again ==\r\n");
         while (!(USART2->ISR & USART_ISR_RXNE));
         (void) (USART2->RDR & 0xFF);
 

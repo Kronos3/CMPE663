@@ -5,6 +5,7 @@
 #include <ultrasonic.h>
 #include <stm32l4xx.h>
 
+// GPIO Trigger pin on PA1
 #define PING_PIN (GPIO_PIN_1)
 #define PING_PORT (GPIOA)
 
