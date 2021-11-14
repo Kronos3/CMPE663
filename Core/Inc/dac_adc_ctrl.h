@@ -5,6 +5,8 @@
 #ifndef CMPE663_DAC_ADC_CTRL_H
 #define CMPE663_DAC_ADC_CTRL_H
 
+#include <types.h>
+
 typedef enum {
     DEVICE_RUNNING,     //!< DAC or ADC running
     DEVICE_STOPPED
@@ -25,6 +27,11 @@ extern volatile run_state_t run_type;
 
 // Drop three bits of accuracy (these are mostly just noise)
 #define BUF_SIZE (DYNAMIC_RANGE * 2)
+
+// Use three buffers to give time to metrics to compute
+// without the ADC overwriting the data
+#define BUF_N 3
+COMPILE_ASSERT(BUF_N >= 2, too_few_buffers);
 
 /**
  * Initialize the first buffer to a new triangle wave

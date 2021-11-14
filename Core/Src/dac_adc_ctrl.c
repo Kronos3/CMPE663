@@ -9,13 +9,8 @@
 #include <uart.h>
 #include <p4.h>
 
-// Use three buffers to give time to metrics to compute
-// without the ADC overwriting the data
-#define BUF_N 3
-COMPILE_ASSERT(BUF_N >= 2, too_few_buffers);
-
 // Sample buffers
-static U16 dma_buf[BUF_N][BUF_SIZE];
+U16 sample_buf[BUF_N][BUF_SIZE];
 
 // HAL ADC for use in tim2_interrupt
 extern ADC_HandleTypeDef hadc1;
@@ -43,11 +38,11 @@ void dac_adc_init(void)
     {
         if (i < DYNAMIC_RANGE)
         {
-            dma_buf[dac_ptr_i][i] = k++;
+            sample_buf[dac_ptr_i][i] = k++;
         }
         else
         {
-            dma_buf[dac_ptr_i][i] = --k;
+            sample_buf[dac_ptr_i][i] = --k;
         }
     }
 }
@@ -64,7 +59,7 @@ void adc_dac_rotate_buffers(void)
 void dac_cycle_complete(void)
 {
     // When DAC has finished output the signal over the GPIO
-    metrics_compute(dma_buf[dac_ptr_i], dma_buf[adc_ptr_i]);
+    metrics_queue(sample_buf[dac_ptr_i], sample_buf[adc_ptr_i]);
     adc_dac_rotate_buffers();
 }
 
@@ -83,7 +78,7 @@ void dac_tim2_int(void)
             FW_ASSERT(dac_i < BUF_SIZE, dac_i);
 
             // Write value to the DAC
-            DAC1->DHR12R1 = dma_buf[dac_ptr_i][dac_i++];
+            DAC1->DHR12R1 = sample_buf[dac_ptr_i][dac_i++];
             HAL_ADC_Start_IT(&hadc1);
 
             // Reset the counter
@@ -114,7 +109,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
             if (adc_i < BUF_SIZE)
             {
                 // Read and Update The ADC Result
-                dma_buf[adc_ptr_i][adc_i++] = HAL_ADC_GetValue(hadc);
+                sample_buf[adc_ptr_i][adc_i++] = HAL_ADC_GetValue(hadc);
             }
         }
             break;

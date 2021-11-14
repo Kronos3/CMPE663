@@ -16,7 +16,7 @@
  * @param dac_buf
  * @param adc_buf
  */
-void metrics_compute(const U16 dac_buf[BUF_SIZE], const U16 adc_buf[BUF_SIZE]);
+void metrics_queue(const U16 dac_buf[BUF_SIZE], const U16 adc_buf[BUF_SIZE]);
 
 /**
  * Waits for signals from the timer interrupt via
