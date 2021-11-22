@@ -23,8 +23,6 @@
 #include "stm32l4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <fw.h>
-#include <dac_adc_ctrl.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,17 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define FAULT_HANDLER(t)   \
-    __asm volatile(        \
-        "isb \n"           \
-        "dsb \n"           \
-        "tst lr, #4    \n"    /* Check which stack the interrupted function was using */ \
-        "ite eq        \n"    /* Set up ARM conditional */ \
-        "mrseq r0, msp \n"    /* Move the correct stack address to r0 */ \
-        "mrsne r0, psp \n" \
-        "mov r1, %0    \n" \
-        "bl print_context_and_fault \n"   /* Call load_context_from_stack(sp) */ \
-    ::"i" (t) )
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,8 +56,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern ADC_HandleTypeDef hadc1;
-extern TIM_HandleTypeDef htim2;
+extern DMA_HandleTypeDef hdma_dac_ch1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -86,9 +73,9 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-    while (1)
-    {
-    }
+  while (1)
+  {
+  }
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -98,7 +85,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-    FAULT_HANDLER(HARD_FAULT);
+
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -113,7 +100,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-    FAULT_HANDLER(MEM_MANAGE);
+
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -128,7 +115,7 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-    FAULT_HANDLER(BUS_FAULT);
+
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -143,7 +130,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-    FAULT_HANDLER(USAGE_FAULT);
+
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
@@ -213,31 +200,17 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles ADC1 and ADC2 interrupts.
+  * @brief This function handles DMA1 channel3 global interrupt.
   */
-void ADC1_2_IRQHandler(void)
+void DMA1_Channel3_IRQHandler(void)
 {
-  /* USER CODE BEGIN ADC1_2_IRQn 0 */
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */
 
-  /* USER CODE END ADC1_2_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC1_2_IRQn 1 */
+  /* USER CODE END DMA1_Channel3_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_dac_ch1);
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 1 */
 
-  /* USER CODE END ADC1_2_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-  /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-    dac_tim2_int();
-  /* USER CODE END TIM2_IRQn 1 */
+  /* USER CODE END DMA1_Channel3_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

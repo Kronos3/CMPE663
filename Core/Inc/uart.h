@@ -11,8 +11,8 @@
 #define BufferSize 50
 
 // HAL definitions
-#define GPIO_SPEED_FREQ_VERY_HIGH    (0x00000003u)    /*!< range 50 MHz to 80 MHz, please refer to the product datasheet */
-#define GPIO_AF7_USART2                ((uint8_t)0x07) /*!< USART2 Alternate Function mapping     */
+#define GPIO_SPEED_FREQ_VERY_HIGH   (0x00000003u)    /*!< range 50 MHz to 80 MHz, please refer to the product datasheet */
+#define GPIO_AF7_USART2             ((uint8_t)0x07) /*!< USART2 Alternate Function mapping     */
 #define GPIO_MODE_AF_PP             (0x00000002u)   /*!< Alternate Function Push Pull Mode     */
 #define UART_WORDLENGTH_8B          0x00000000U     /*!< 8-bit long UART frame */
 #define UART_PARITY_NONE            0x00000000U     /*!< No parity   */
@@ -34,6 +34,7 @@ void uart_init(void);
  * @return length of write
  */
 I32 uprintf(const char* format_str, ...);
+
 I32 uprintf_no_lock(const char* format_str, ...);
 
 /**
@@ -65,7 +66,5 @@ U8 USART_Read(USART_TypeDef* USARTx);
 void USART_Delay(U32 us);
 
 void USART_IRQHandler(USART_TypeDef* USARTx, U8* buffer, U32* pRx_counter);
-
-void USART2_Init(I32 baudrate);
 
 #endif /* __STM32L476G_DISCOVERY_UART_H */
