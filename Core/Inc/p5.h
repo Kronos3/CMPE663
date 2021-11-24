@@ -15,6 +15,8 @@
 // Maximum number of samples for an entire cycle
 #define MAX_SAMPLES (2000)
 
+#define CPU_FREQ (80e6)
+
 extern U32 sample_buf[MAX_SAMPLES];
 
 // Number of samples per second the DAC can produce (1 MSPS)

@@ -194,8 +194,9 @@ int main(void)
         if (max_v_dac >= DYNAMIC_RANGE) max_v_dac = DYNAMIC_RANGE - 1;
 
         p5_compute_trigger(&trigger, frequency);
-        uprintf("type=%c, ARR=%d, N=%d, min_dac=%d, max_dac=%d\r\n",
-                wave_type, trigger.arr, trigger.n, min_v_dac, max_v_dac);
+        uprintf("type=%c, ARR=%d (%d Hz), N=%d, min_dac=%d, max_dac=%d\r\n",
+                wave_type, trigger.arr, frequency,
+                trigger.n, min_v_dac, max_v_dac);
 
         // Disable the timer and the DMA
         TIM2->CR1 &= ~(TIM_CR1_CEN);
