@@ -17,7 +17,8 @@
 
 #define CPU_FREQ (80e6)
 
-extern U32 sample_buf[MAX_SAMPLES];
+// Sample type
+typedef U32 Sample;
 
 // Number of samples per second the DAC can produce (1 MSPS)
 // Attempt to keep the DAC running at maximum
@@ -40,26 +41,29 @@ void p5_compute_trigger(Trigger* self, U32 frequency);
 
 /**
  * Square wave (starts at max_v)
+ * @param buf buffer to initialize
  * @param min_v minimum voltage
  * @param max_v maximum voltage
  * @param n number of samples in the buffer
  */
-void p5_square_wave(U32 min_v, U32 max_v, U32 n);
+void p5_square_wave(Sample* buf, U32 min_v, U32 max_v, U32 n);
 
 /**
  * Triangle wave
  * @param min_v minimum voltage
+ * @param buf buffer to initialize
  * @param max_v maximum voltage
  * @param n number of samples in the buffer
  */
-void p5_triangle_wave(U32 min_v, U32 max_v, U32 n);
+void p5_triangle_wave(Sample* buf, U32 min_v, U32 max_v, U32 n);
 
 /**
  * Sine wave
  * @param min_v minimum voltage
+ * @param buf buffer to initialize
  * @param max_v maximum voltage
  * @param n number of samples in the buffer
  */
-void p5_sin_wave(U32 min_v, U32 max_v, U32 n);
+void p5_sin_wave(Sample* buf, U32 min_v, U32 max_v, U32 n);
 
 #endif //CMPE663_P5_H

@@ -112,7 +112,10 @@ int main(void)
     p5_compute_trigger(&trigger, 1000);
     TIM2->ARR = trigger.arr;
 
-    p5_sin_wave(1000, 4000, trigger.n);
+    // Where the actual samples are stored
+    static Sample sample_buf[MAX_SAMPLES];
+
+    p5_sin_wave(sample_buf, 1000, 4000, trigger.n);
 
     HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sample_buf, trigger.n, DAC_ALIGN_12B_R);
     HAL_TIM_Base_Start(&htim2);
@@ -161,7 +164,7 @@ int main(void)
             continue;
         }
 
-        void (* wave_f)(U32, U32, U32);
+        void (* wave_f)(Sample*, U32, U32, U32);
         switch (wave_type)
         {
             case 'R':
@@ -207,7 +210,7 @@ int main(void)
         TIM2->EGR |= TIM_EGR_UG;
 
         // Compute the DMA samples
-        wave_f(min_v_dac, max_v_dac, trigger.n);
+        wave_f(sample_buf, min_v_dac, max_v_dac, trigger.n);
 
         // Resend the DMA request (just in case the sample count changes)
         HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sample_buf, trigger.n, DAC_ALIGN_12B_R);

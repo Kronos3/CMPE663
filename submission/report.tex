@@ -9,8 +9,8 @@
 \newcommand{\LabSectionNum}{1}
 \newcommand{\LabInstructor}{Wolfe}
 \newcommand{\TAs}{Nitin Borhade}
-\newcommand{\exerciseNumber}{4}
-\newcommand{\exerciseDescription}{ADC \& DAC}
+\newcommand{\exerciseNumber}{5}
+\newcommand{\exerciseDescription}{Signal Generator}
 
 \usepackage{tikz}
 \usepackage{circuitikz}
@@ -35,128 +35,103 @@
     \maketitle
     \section*{Analysis/Design}
 
-    This project looked at the wave degeneration created from feeding
-    the DAC a 1Hz triangular wave signal read from the ADC and connecting
-    the DAC output pin to the ADC input pin. Using an oscilloscope connected
-    in parallel, the live signal degeneration can be seen clearly. The sharp
-    edges of the original wave begin to dengerate as the error produced by
-    the DAC, ADC and line impedance compounds after every iteration.
-     \\
+    This project looked at generating certain waveforms with varying parameters.
+    The usage of the DMA in tandem with the DAC was crucial to the operation of
+    this exercise. A system was designed in which the DAC could be utilized to
+    its maximum operating speed when enough RAM was available.
+
+	\begin{figure}[h!]
+      \centering
+      \includegraphics[width=12cm]{overview}
+      \caption{Overview of system operation}
+      \label{fig:overview}
+    \end{figure}
+
+	
 
 	\subsection*{Hardware Operation}
 
-	The simplest design for the operation of the DAC and ADC is to write directly
-	to the DAC hardware output register and trigger ADC conversion via software.
-	To make the timing work properly, \code{TIM2} was used to interrupt at a constant
-	known rate for each of the DAC samples. The DAC is designed to output to the
-	maximum operational voltage and use the entire dynamic range of 12-bits. To
-	generate a triangle wave of this type, 8192 sample buckets are required. The
-	calculation to set up the timer is done below:
+	The signals that must be generated for this project need to reach a maximum
+	of \SI{100}{\kilo\Hz}. Unlike the previous project, operating the DAC using
+	a timer interrupt will not work properly at this frequency. Interrupting the
+	CPU causes inherent delay that will far exceed the minimum response time at
+	the maximum frequency. To circumvent this issue, the DMA may be used to write
+	to the DAC directly. The DMA peripheral must be triggered by a hardware source
+	to operate in the way we intend. \code{TIM2} was used again to trigger the DMA.
+	Like the previous project, we can represent the frequency of a discrete periodic
+	wave given the trigger frequency and number of buffer samples.
 
 	\begin{equation}
 	F_{sysclk} = F_{wave} \cdot N_{samples} \cdot (ARR + 1)(PSC + 1)
 	\end{equation}
 
-	We have two variables and only one equation, we can therefore solve for
-	$ARR = PSC$ to keep things simple. $F_{wave}$ is defined at \SI{1}{Hz}.
+	For now we will assume that the DAC may operate at an arbitrarily high
+	frequency and we will account for this later on. $F_{sysclk}$, $F_{wave}$,
+	and $N_{samples}$ are known constants. $ARR$ and $PSC$ are variables. In the
+	previous project we set, $PSC = ARR$. However this method will not allow the
+	accuracy at higher frequencies. We are now setting $PSC=0$.
 
 	\begin{align}
-	ARR &= PSC\\
-	x &= ARR + 1\\
-	x &= \sqrt{\frac{\SI{80}{\mega \Hz}}{8192 \cdot \SI{1}{Hz} }} = 98.82 \approx 99\\
-	ARR &= PSC = \mathbf{98}
+	ARR &= \frac{F_{sysclk}}{F_{wave} \cdot N_{samples}} - 1
 	\end{align}
 
-	Now that the \code{TIM2} interrupt will trigger at the desired rate,
-	an interrupt handler is written to perform two main functions: write the
-	current sample to the DAC, trigger the ADC conversion.
+	We assumed previously that the DAC may operate at an arbitrarily high rate.
+	This is not an accurate assumption as the DACs on the this STM32 board have
+	a maximum sample rate of \SI{1}{\mega SPS}. Using the wave frequency, a known
+	constant, we can calculate the maximum number of samples we can use inside
+	a single period to reach the maximum sample rate of the DAC peripheral.
 
-	\begin{figure}[h!]
-      \centering
-      \includegraphics[width=12cm]{adc_dac}
-      \caption{DAC \& ADC operation with \code{TIM2} interrupt}
-      \label{fig:tim2}
-    \end{figure}
+	\begin{align}
+	N_{samples} = \frac{\SI{1}{\mega SPS}}{F_{wave}}
+	\end{align}
 
-	\pagebreak
-	
-	As can be seen in Figure \ref{fig:tim2}, the \code{TIM2} interrupt will write
-	to the DAC output register. The ADC conversion trigger is also signaled during
-	this interrupt. When the ADC has finished sampling and converting the
-	read value, it will trigger an interrupt of its own, which allows the program to
-	read the value from the peripheral into the ADC buffer.
+	Because we don't have infinite memory and our sample buffer is statically
+	allocated, we must cap the number of samples to the chosen length of the
+	sample buffer. A sample buffer length of $2000$ was chosen because it
+	creates a smooth curve at the minimum operating frequency and isn't too
+	large.
 
-	\subsection*{Metrics \& Peripheral Buffers}
+	\subsection*{Wave Generation}
 
-	Metrics will take a significant amount of time to compute. This is due to the
-	need to sort the data to compute the median data point. This means that the
-	computation should not be performed inside the timer interrupt. When a cycle
-	completes, the buffers pointed to by the DAC and ADC, are rotated. The two old
-	buffers are queued to compute metrics. Once the \code{TIM2} interrupt
-	finishes, the superloop will see the queued buffers and perform the computation.\\
-
-	Because the ADC will write to its buffer immediately, at least three buffers are
-	required when computing metrics. The DAC peripheral and metrics can both read from
-	the same buffer at the same time.
-
-	\pagebreak 
-
-	\begin{figure}[h!]
-      \centering
-      \includegraphics[width=10cm]{adc_dac_buf}
-      \caption{Buffer design in combination with metrics}
-      \label{fig:buf}
-    \end{figure}
-
-	Figure \ref{fig:buf} shows an example of the buffer usage during a
-	DAC/ADC cycle and metrics computation. The computation is reading from the
-	buffer that was previously written to by the ADC (\code{BUF\_2}) as
-	well as comparing this buffer to the the ADC output from two cycles prior
-	(\code{BUF\_1}). An important thing to note is that nothing is reading from
-	the ADC buffer while the peripheral is writing to it.
+	To generate the waveforms for the triangular, square, and sinusoid, differing
+	methods were used. The square wave was the simplest with half of the buffer
+	being the maximum voltage and the other half being the minimum voltage. The
+	triangle wave could be generated by calculating the slope between the min
+	and max voltages over half of the usable buffer length. Then use this slope
+	to interpolate a rising line in the first half and a mirrored falling line
+	in the second half. Lastly, the sinusoid is generated by scalling the
+	\code{sin()} function from the \code{math} library to the length of buffer.
+	The move and scale this function to fit within the desired min/max range.
 
     \section*{Test Plan}
 
-    Testing the code was fairly straighforward. A wire was connected from the
-    DAC output pin, \code{PA4} to the ADC input pin \code{PA0}. An oscilloscope
-    was connect in parallel to show the voltage on the line in realtime.
+    To test operation, an oscilloscope was used to monitor the wave generation.
+    The oscilloscope can measure periodic wave frequencies and was able to varify
+    the correct operation of the system. To test, low frequencies were used first to
+    verify that the chosen buffer length was long enough to create smooth curves.
+    The highest frequencies were tested last to verify that the algorithm to determine
+    the buffer length operated properly.
 
     \section*{Project Results}
 
-	To check the functionality of the program, the data from the first and tenth
-	iterations were saved and dumped to the UART. This data was then used to
-	generate a graph with three plots: reference, first and tenth iteration lines.
-	The reference plot is meant to show the ideal wave that was initially passed to
-	the DAC.\\
-	
-	\pagebreak
-
-	\begin{figure}[h!]
-      \centering
-      \includegraphics[width=12cm]{adc_dac_iter}
-      \caption{ADC capture comparison of 1 vs 10 iterations}
-      \label{fig:output}
-    \end{figure}
-
-	Looking at Figure \ref{fig:output} we can see the degredation we would expect.
-	The corner at top the will flatten and the shape of the original triangle will
-	begin to flatten. After a single iteration, the shape is mostly kept intact when
-	comparing to the reference curve.\\
-
-	An interesting result of the degradation is that the start and end of the wave is
-	nulled to zero. This means when connecting to the oscilloscope, the wave does not
-	look like the tails of each period are aligned. However, we can be sure that the
-	timing is correct because the center of period is aligned for the reference, first
-	and tenth iterations meaning the ADC is filling the buffers properly.
+	Results shown on the oscilloscope are expected. Low frequency waveforms have very
+	smooth profiles while higher frequencies (higher than \SI{10}{\kilo\Hz}) start to
+	show more jageddy edges. This is expected because the maximum sample rate of the
+	DAC peripheral begins to have significant impact waveforms profile. At the highest
+	frequency (\SI{100}{\kilo\Hz}), we can see that only about 10 samples are used which
+	create step like function for the triangular and sinusoidal waveforms. The square
+	wave does not suffer at all from the lower sample count as it only requires two
+	samples to fully model the waveform.
 
     \section*{Lessons Learned}
 
-	This project explored the operation of the DAC and ADC. It also showed how the
-	error of the DAC and ADC can compound very quickly. To operate the DAC, a timer
-	interrupt was used to write the sample to output register. This interrupt also
-	triggers the ADC to begin conversion. An ADC interrupt was used to copy the
-	value at the end of conversion the ADC respective buffer. Smart handling of the
-	buffers was required to make sure that metrics of each iteration could be calculated
-	while the DAC and ADC were running.
+	This project explored the operation of the DMA in conjuction with the DAC. When
+	starting the project, following a DMA/DAC setup guide for STM32 did not work at
+	all. There turned out to be a completely unrelated peripheral accessing the GPIO
+	bus causing the DMA to not play nicely with the DAC. Starting the project from
+	scratch and not initializing peripherals to their defaults allowed the DMA to work
+	as intended. The second major obstacle was finding out that the DAC had a maximum
+	sample rate. Deriving an algorithm to limit trigger frequency of the timer by limiting
+	the number of samples used was vital in making this project as robust as possible.
 
 \end{document}

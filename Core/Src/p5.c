@@ -7,9 +7,6 @@
 // STM32 has a math library automatically linked in :)
 #include <math.h>
 
-// Buffer to store the actual samples getting sent to the DMA
-U32 sample_buf[MAX_SAMPLES];
-
 void p5_compute_trigger(Trigger* self, U32 freq_i)
 {
     // Calculate the number of samples needed to max out
@@ -39,34 +36,34 @@ void p5_compute_trigger(Trigger* self, U32 freq_i)
     FW_ASSERT(self->arr >= 79 && "Invalid ARR trigger frequency", self->arr);
 }
 
-void p5_square_wave(U32 min_v, U32 max_v, U32 n)
+void p5_square_wave(Sample* buf, U32 min_v, U32 max_v, U32 n)
 {
     for (U32 i = 0; i < n / 2; i++)
     {
         // Initialize the high half
-        sample_buf[i] = max_v;
+        buf[i] = max_v;
 
         // Initialize the low half
-        sample_buf[i + n / 2] = min_v;
+        buf[i + n / 2] = min_v;
     }
 }
 
-void p5_triangle_wave(U32 min_v, U32 max_v, U32 n)
+void p5_triangle_wave(Sample* buf, U32 min_v, U32 max_v, U32 n)
 {
     F64 x = min_v;
     F64 dx = ((F64) (max_v - min_v)) / (n / 2.0);
     for (U32 i = 0; i < n / 2; i++)
     {
         // Initialize the first half of the wave (rising)
-        sample_buf[i] = (U32) x;
+        buf[i] = (U32) x;
 
         // Initialize the second half of the wave (falling)
-        sample_buf[n - i] = (U32) x;
+        buf[n - i] = (U32) x;
         x += dx;
     }
 }
 
-void p5_sin_wave(U32 min_v, U32 max_v, U32 n)
+void p5_sin_wave(Sample* buf, U32 min_v, U32 max_v, U32 n)
 {
     F64 dt = PI2 / n;
     F64 a = (max_v - min_v) / 2.0;
@@ -76,6 +73,6 @@ void p5_sin_wave(U32 min_v, U32 max_v, U32 n)
         // 2. Make the mid-point of sin be 1
         // 3. Scale sin to the amplitude
         // 4. Move the sinusoid to the correct y-offset
-        sample_buf[i] = min_v + (U32) (a * (sin(i * dt) + 1.0));
+        buf[i] = min_v + (U32) (a * (sin(i * dt) + 1.0));
     }
 }
