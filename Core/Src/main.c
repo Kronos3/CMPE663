@@ -189,13 +189,14 @@ int main(void)
         if (!wave_f) continue;
 
         // Compute the voltage in DAC ticks
-        U32 min_v_dac = (U32) (min_v * ((DYNAMIC_RANGE - 1) / 3.3));
-        U32 max_v_dac = (U32) (max_v * ((DYNAMIC_RANGE - 1) / 3.3));
+        U32 min_v_dac = (U32) (min_v * (DYNAMIC_RANGE / 3.3));
+        U32 max_v_dac = (U32) (max_v * (DYNAMIC_RANGE / 3.3));
 
         // Cap the min and max just in case
         if (min_v_dac < 0) min_v_dac = 0;
         if (max_v_dac >= DYNAMIC_RANGE) max_v_dac = DYNAMIC_RANGE - 1;
 
+        // Compute the ARR and sample count based on the requested frequency
         p5_compute_trigger(&trigger, frequency);
         uprintf("type=%c, ARR=%d (%d Hz), N=%d, min_dac=%d, max_dac=%d\r\n",
                 wave_type, trigger.arr, frequency,
@@ -215,7 +216,7 @@ int main(void)
         // Resend the DMA request (just in case the sample count changes)
         HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sample_buf, trigger.n, DAC_ALIGN_12B_R);
 
-        // Re-enable the timer
+        // Re-enable the timer which also starts triggering the DMA
         TIM2->CR1 |= TIM_CR1_CEN;
 
         /* USER CODE END WHILE */
