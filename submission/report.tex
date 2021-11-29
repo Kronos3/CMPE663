@@ -37,7 +37,10 @@
     This project looked at operating an ultrasonic sensor for distance detection.
     Operation of the ultrasonic involves input capture for echo timing as well as
     polling for accurate pulse widths. \code{TIM2} was used to operate the timing
-    of input and output to the sensor.
+    of input and output to the sensor. The UART was used to take user as usual.
+    While taking sensor measurements, UART input can halt the measurements if
+    any input is detected. To implement, a non-blocking check for UART input can
+    be embedded into the loop for taking sensor measurements.
 
 	\subsection*{Ultrasonic sensor signals}
 
@@ -56,69 +59,58 @@
 	Figure \ref{fig:us} shows the pin operation for the input and output to the
 	sensor. The output trigger can be easily implementing by setting the trigger
 	pin high, waiting for $\SI{\sim 20}{\micro\s}$ and then setting it back to low.
-	The echo pin is slightly more complicated to implement. A timer's input capture
-	must be set up be both rising and falling edge triggered. This will make the first
-	event tell us the reference counter time of the output ping and the second event
-	will give us the response time. 
+	The echo pin timing can be implemented by enabling input capture with both rising
+	and falling triggers. The first event on the timer will provide a reference count
+	to substract the second event from. The counter different will tell us how long the
+	signal took to return. The speed of sound can be used to calculate the distance the
+	sound wave travelled.
+
+	\subsection*{Distance calculation}
+
+	Calculating the distance between detected surface and the sensor is fairly
+	straight forward. I used a prescaler of $79$ on \code{TIM2} with a system
+	clock of \SI{80}{\mega\Hz}. This means that each count on the timer represents
+	\SI{1}{\micro\s}. Using this informating, we can derive an expression.
+
+	\begin{align*}
+		c &= \SI{343}{\m/\s} && \text{Speed of sound in air}\\
+		\SI[parse-numbers=false]{t_{response}}{\micro\s} &= t_{reply} - t_{reference} && \text{Elasped time of wave travel}\\
+		\SI[parse-numbers=false]{d_{travel}}{\milli\m} &= \frac{\SI[parse-numbers=false]{t_{response}}{\micro\s}}{\SI{1000}{\micro\s/\milli\s}} \cdot \SI[parse-numbers=false]{c}{\m/\s} && \text{Total travel of distance in mm}\\
+		d &= \frac{d_{travel}}{2} && \text{Travel is round trip distance}
+	\end{align*}
+
+	Using this conversion with a system clock and timer prescaler as stated above,
+	the expression was verified to be correct by placing the sensor a known length
+	away from a surface.
 
     \section*{Test Plan}
 
-    Testing the code was fairly straighforward. The UART status task was updated
-    in realtime and therefore showed most of the errors on the spot. The uniform
-    distrobution of the RNG could be verified by making sure the minimum and maximum
-    were close to the specified boundaries as well as the average being halfway between
-    the two. The seven segment display was tested using the given customer entry rates
-    as well as increased rates designed to fill the queue more.
+    Testing the program involved pointing the sensor at a wall and testing the readings
+    at varying distances. I implemented a "live" feed before the 100 measurements are
+    taken to make creating the CSV easier. The ultrasonic sensor outputed values that
+    were consistent with visual inspection. This confirmed the functionality of the
+    sensor was correct. Testing revealed that my equation to convert timer ticks to
+    distance was incorrect. I was not taking into account the fact that the travel
+    time is a \emph{round-trip} time. This means that you must divide this time by to
+    calculate the distance the sound wave travelled.
 
     \section*{Project Results}
 
-    The software behaved as expected by the problem statement. All random numbers
-    generated expected results and the simulation ran in the expected amount of
-    time. The metrics reported at the end of the simulation showed that the parameters
-    controlling the simulation as well as the design of the bank were correct.
+    When testing the sensor measurements on different surfaces, we can see a varying
+    standard deviation. For softer surfaces like a pillow or clothing, the deviation
+    was significantly higher than for smooth and hard surfaces like a wall. The accuracy
+    of the sensor was fairly high for distances between \SI{100}{\milli\m} and \SI{3}{\m}.
+    At distances that were out of range, the pulse width was capped off by the hardware.
+    When measuring larger distances, $>\SI{1}{\m}$, a large surface is needed because the
+    cone radius rises as the distance away from the sensor increases.
 
     \section*{Lessons Learned}
 
-	This project explored creating an embedded system on top of FreeRTOS. I learned
-	how to use the API reference to quickly implement the components I needed in this
-	realtime system. Task scheduling priority and preemption became clear when
-	expirementing with task attributes during development. The most major issue that
-	I ran into during development was a hardfault inside the teller. I created an
-	efficient way to debug hardfaults (and other faults) by creating an assembly
-	subroutine to extract the core registers saved when the hardfault interrupt was
-	triggered. This allowed me to view the instruction and register values of the
-	problematic code. The problematic code ended being related to a libc library call
-	\code{vsnprintf} not being thread-safe and therefore causing issues within FreeRTOS.
-
-	\pagebreak
-
-	Below is an example of a hardfault occuring when overwriting part of the task
-	control block (FreeRTOS's structure for keeping track of tasks) causing the
-	context switcher to fault out:
-
-	\begin{figure}[h!]
-      \centering
-      \includegraphics[width=5.5in]{hardfault}
-      \caption{Example of hardfault handler}
-      \label{fig:fault}
-    \end{figure}
-
-	Looking at the program counter in Figure \ref{fig:fault}, we can find the appropriate
-	assembly instruction in the generated ELF binary. To do this, LLVM's objdump tool
-	was used to decode the binary.
-
-	\begin{figure}[h!]
-      \centering
-      \includegraphics[width=5.5in]{fault_pc}
-      \caption{Decoded instruction at faulty program counter}
-      \label{fig:fault_pc}
-    \end{figure}
-
-	In this particular instance, the task control block's stack pointer was moved to
-	an invalid address therefore causing the kernel to fault out when attempting a
-	context switch. This specific instruction will save the tasks core registers not
-	explicitely saved by an ISR onto the tasks stack. In the future, this mechanism
-	will be useful in quickly determining issues related to programming errors such
-	as the one caused by non-threadsafe use of \code{vsnprintf} in this exercise.
+	This project was fairly straight forward. The code to implement this project was
+	very similar to the first project. One difference between the two was the fact 
+	that this one required a timing output signal. I implemented this in the simplest
+	form possible, setting the pin high, polling the timer counter, setting the pin
+	to low. Before this project I was not familiar with the operation of the ultrasonic
+	sensor.
 
 \end{document}

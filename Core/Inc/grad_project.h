@@ -7,7 +7,7 @@
 
 #include <types.h>
 
-#define SPEED_OF_SOUND_MS 343
+#define SPEED_OF_SOUND_MS (343.0)
 
 typedef enum {
     STATUS_FAILURE = -1,
@@ -43,7 +43,7 @@ U32 ultrasonic_measure(void);
 static inline U32 ultrasonic_convert(U32 useconds)
 {
     // m/s * us -> us / 1000 -> mm
-    return SPEED_OF_SOUND_MS * useconds / 1000;
+    return SPEED_OF_SOUND_MS * useconds / 1000 / 2.0;
 }
 
 /**

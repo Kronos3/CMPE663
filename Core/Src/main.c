@@ -32,8 +32,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-//#define CSV_LINE_SEP "|"
-#define CSV_LINE_SEP "\r\n"
+#define CSV_LINE_SEP "|"
+//#define CSV_LINE_SEP "\r\n"
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
