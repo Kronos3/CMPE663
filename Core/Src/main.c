@@ -25,8 +25,6 @@
 
 #include "uart.h"
 #include <led.h>
-#include <stm32l4xx_hal_tim.h>
-#include <ultrasonic.h>
 #include <grad_project.h>
 #include <stdlib.h>
 #include <math.h>

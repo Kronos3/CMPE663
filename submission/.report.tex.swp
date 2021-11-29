@@ -56,10 +56,6 @@
 	Figure \ref{fig:us} shows the pin operation for the input and output to the
 	sensor. The output trigger can be easily implementing by setting the trigger
 	pin high, waiting for $\SI{\sim 20}{\micro\s}$ and then setting it back to low.
-	The echo pin is slightly more complicated to implement. A timer's input capture
-	must be set up be both rising and falling edge triggered. This will make the first
-	event tell us the reference counter time of the output ping and the second event
-	will give us the response time. 
 
     \section*{Test Plan}
 
