@@ -108,6 +108,8 @@ int main(void)
     MX_USART2_UART_Init();
     /* USER CODE BEGIN 2 */
 
+    uclear();
+
     Trigger trigger;
     p5_compute_trigger(&trigger, 1000);
     TIM2->ARR = trigger.arr;
