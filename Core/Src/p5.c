@@ -58,7 +58,7 @@ void p5_triangle_wave(Sample* buf, U32 min_v, U32 max_v, U32 n)
         buf[i] = (U32) x;
 
         // Initialize the second half of the wave (falling)
-        buf[n - i] = (U32) x;
+        buf[n - i - 1] = (U32) x;
         x += dx;
     }
 }
